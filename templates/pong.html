@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+
+<html>
+<!-- This is the distructd3 file edited by Gracie Liu-Fang, based off of the original distructd3 by Aaron Behr. 
+Functionalities added:
+
+1. functions to convert color strings into their corresponding hex codes
+2. new parse function that parses in two additional files - population numbers, and population names corresponding to numbers
+3. numPopArray is an array that has population number and population, which is used for the population labels and ordering newArray into another array that allows the populations to look nicer. This was done manually before.
+4. newArray is an array that puts in all the individuals represented by qArrays in the array index corresponding to the population number that they belong in. This enables population delimitation and labeling. 
+5. indexArray that specifies what order of colors to use for use K plot (in indices of user_colors), carried through parseQmatrix and generateVis and converted to hex order in the last function before color fill rectangle individuals 
+6. newArray is passed in as the data, that is, data is being parsed and ordered in D3 as opposed to manually + pong previously
+7. lines are dynamically added to delimit different populations within each K value 
+8. population labels are added on the bottom svg element. They must be rotated to fit, but this is being worked on.
+-->
+
+
+<head>
+	<meta charset="utf-8">
+	<title>pong visualization</title>
+
+
+	<!-- FAVICON -->
+	<link rel="apple-touch-icon" sizes="57x57" href="{{ static_url("favicon/apple-icon-57x57.png") }}">
+	<link rel="apple-touch-icon" sizes="60x60" href="{{ static_url("favicon/apple-icon-60x60.png") }}">
+	<link rel="apple-touch-icon" sizes="72x72" href="{{ static_url("favicon/apple-icon-72x72.png") }}">
+	<link rel="apple-touch-icon" sizes="76x76" href="{{ static_url("favicon/apple-icon-76x76.png") }}">
+	<link rel="apple-touch-icon" sizes="114x114" href="{{ static_url("favicon/apple-icon-114x114.png") }}">
+	<link rel="apple-touch-icon" sizes="120x120" href="{{ static_url("favicon/apple-icon-120x120.png") }}">
+	<link rel="apple-touch-icon" sizes="144x144" href="{{ static_url("favicon/apple-icon-144x144.png") }}">
+	<link rel="apple-touch-icon" sizes="152x152" href="{{ static_url("favicon/apple-icon-152x152.png") }}">
+	<link rel="apple-touch-icon" sizes="180x180" href="{{ static_url("favicon/apple-icon-180x180.png") }}">
+	<link rel="icon" type="image/png" sizes="192x192"  href="{{ static_url("favicon/android-icon-192x192.png") }}">
+	<link rel="icon" type="image/png" sizes="32x32" href="{{ static_url("favicon/favicon-32x32.png") }}">
+	<link rel="icon" type="image/png" sizes="96x96" href="{{ static_url("favicon/favicon-96x96.png") }}">
+	<link rel="icon" type="image/png" sizes="16x16" href="{{ static_url("favicon/favicon-16x16.png") }}">
+	<link rel="manifest" href="{{ static_url("favicon/manifest.json") }}">
+	<meta name="msapplication-TileColor" content="#ffffff">
+	<meta name="msapplication-TileImage" content="{{ static_url("favicon/ms-icon-144x144.png") }}">
+	<meta name="theme-color" content="#ffffff">
+
+
+
+	<!-- Load JS (JQuery, Bootstrap, D3, ColorBrwer, and D3-tip) -->
+	<!-- <script src="{{ static_url("dependencies/jquery-2.1.4.min.js") }}" type="text/javascript"></script>
+	<script src="{{ static_url("dependencies/bootstrap-3.3.5-dist/js/bootstrap.min.js") }}" type="text/javascript"></script>
+	<script src="{{ static_url("dependencies/d3.v3.min.js") }}" type="text/javascript"></script>
+	<script src="{{ static_url("dependencies/colorbrewer.v1.min.js") }}" type="text/javascript"></script>
+	<script src="{{ static_url("dependencies/d3.tip.v0.6.3.js") }}" type="text/javascript"></script>
+	-->
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+	<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
+	<script type="text/javascript" src="http://d3js.org/colorbrewer.v1.min.js"></script>  
+	<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+	
+	
+	<!-- Load CSS (Bootstrap, Font Awesome) -->
+	
+	<!-- <link rel="stylesheet" href="{{ static_url("dependencies/bootstrap-3.3.5-dist/css/bootstrap.min.css") }}" type="text/css" />
+	<link rel="stylesheet" href="{{ static_url("dependencies/font-awesome-4.4.0/css/font-awesome.min.css") }}" type="text/css" />
+	-->
+
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"/>
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"/>
+
+
+	<!-- Load custom JS and CSS -->
+	<script src="{{ static_url("pong.js") }}" type="text/javascript"></script>
+	<link rel="stylesheet" href="{{ static_url("pong.css") }}" type="text/css" />
+
+</head>
+<body>
+
+<nav class="navbar navbar-default navbar-fixed-top alert-danger" id="resize-warning-nav">
+	<div class="container">
+		<div class="row">
+			<div class="col-md-1"></div>
+			<div class="col-md-10">
+				<table id="resize-warning-text">
+					<tr>
+						<td><i class="fa fa-exclamation-triangle fa-2x"></i></td>
+						<td>It looks like you've changed your browser width. Please refresh your browser to optimize the visualization for this window size.</td>
+						<td></td>
+						<td><div id="resize-warning-exit"><i class="fa fa-times-circle fa-lg"></i></div></td>
+					</tr>
+				</table>					
+			</div>
+			<div class="col-md-1"></div>
+		</div>
+	</div>
+</nav>
+
+
+<section id="loading">
+	<div class="jumbotron">
+		<div class="container">
+			<div class="row"><br/></div>
+			<div class="row"><br/></div>
+			<div class="row">
+				<div class="col-md-12">
+					<h1 class="pong-title">pong</h1>
+					<br/>
+					<i class="fa fa-spinner fa-5x fa-pulse"></i>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+
+
+<div class="container">
+	<div class="row">
+		<div class="col-md-1"></div>
+		<div class="col-md-10">
+			<div class="page-header">
+				<h1 class="text-center pong-title">pong</h1>
+			</div>
+		</div>
+		<div class="col-md-1"></div>
+	</div>
+</div>
+
+<div class="container-fluid">
+	<div id="visualization"></div>
+</div>
+
+
+
+
+<div class="container">
+	<div class="row">
+		<div class="text-center">
+			<br>
+			<button class="btn btn-default" type="submit" id="downloadPDF">Print all barplots</button>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-md-1"></div>
+		<div class="col-md-10"><hr /></div>
+		<div class="col-md-1"></div>
+		
+	</div>
+	<div class="row">
+		<div class="col-md-12">
+			<p class="text-center"><a href="mailto:aaron_behr@alumni.brown.edu?Subject=pong">A. Behr</a>, K. Liu, G. Liu-Fang, <a href="mailto:sramachandran@brown.edu?Subject=pong">S. Ramachandran</a></p>
+			<p class="text-center">To share your experience as a pong user, visit <a href="https://groups.google.com/forum/#!forum/pong-app" target="_blank">our Google group</a>.</p>
+		</div>
+	</div>
+</div>
+	
+
+
+
+
+</body>
+</html>

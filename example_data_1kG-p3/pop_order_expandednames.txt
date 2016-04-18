@@ -1,0 +1,26 @@
+YRI	Yoruba in Ibadan, Nigeria
+LWK	Luhya in Webuye, Kenya
+GWD	Gambian in Western Divisions in the Gambia
+MSL	Mende in Sierra Leone
+ESN	Esan in Nigeria
+ASW	Americans of African Ancestry in SW USA
+ACB	African Caribbeans in Barbados
+CEU	Utah Residents (CEPH) with Northern and  Western European Ancestry
+TSI	Toscani in Italia
+FIN	Finnish in Finland
+GBR	British in England and Scotland
+IBS	Iberian Population in Spain
+GIH	Gujarati Indian from Houston, Texas
+PJL	Punjabi from Lahore, Pakistan
+BEB	Bengali from Bangladesh
+STU	Sri Lankan Tamil from the UK
+ITU	Indian Telugu from the UK
+CHB	Han Chinese in Bejing, China
+JPT	Japanese in Tokyo, Japan
+CHS	Southern Han Chinese
+CDX	Chinese Dai in Xishuangbanna, China
+KHV	Kinh in Ho Chi Minh City, Vietnam
+MXL	Mexican Ancestry from Los Angeles USA
+PUR	Puerto Ricans from Puerto Rico
+CLM	Colombians from Medellin, Colombia
+PEL	Peruvians from Lima, Peru
