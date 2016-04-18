@@ -979,7 +979,7 @@ function importSVG(sourceSVG, targetCanvas) {
   // this is just a JavaScript (HTML) image
   var img = new Image();
   // https://developer.mozilla.org/en/DOM/window.btoa
-  img.src = "data:image/svg+xml;base64," + btoa(svg_xml);
+  img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg_xml)));
 
   img.onload = function() {
       // after this, Canvas’ origin-clean is DIRTY
