@@ -25,7 +25,7 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 				dtype=[('f0',object), ('f1',int), ('f2',object)],
 				loose=False, autostrip=True)
 	except ValueError:
-		sys.exit('Error parsing pongparams file: check that the file is tab-'
+		sys.exit('Error parsing filemap: check that the file is tab-'
 			'delimited and that the columns are ordered properly.')
 
 
@@ -44,6 +44,10 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 	pong.K_min = krange[0]
 	pong.K_max = krange[-1]
 	pong.all_kgroups = [Kgroup(K) for K in krange]
+
+	if pong.K_min < 2:
+		sys.exit('Error: Q matrix with K=%d encountered in filemap, which is not supported by pong. '
+			'Make sure all input files have K greater than or equal to 2.' % pong.K_min)
 
 	if pong.K_max > 26 and not pong.colors:
 		sys.exit('Pong does not support values of K greater than 26 by default. '
@@ -90,8 +94,11 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 
 		name = q[0]
 		if name.isdigit():
-			sys.exit('run id cannot only be an integer. '
+			sys.exit('Error: runID cannot only be an integer. '
 				'It must be a string that contains at least one letter.')
+		if '#' in name or '.' in name:
+			sys.exit('Error: Invalid character encountered in runID. runIDs cannot '
+				'contain \'#\' or \'.\' characters.')
 		run = Run(K, name, data, p)
 		pong.runs[run.id] = run
 
