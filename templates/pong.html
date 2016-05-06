@@ -28,17 +28,29 @@
 
 
 	<!-- Load JS (JQuery, Bootstrap, D3, ColorBrwer, and D3-tip) -->
+	<script src="{{ static_url("dependencies/jquery-2.1.4.min.js") }}" type="text/javascript"></script>
+	<script src="{{ static_url("dependencies/bootstrap-3.3.5-dist/js/bootstrap.min.js") }}" type="text/javascript"></script>
+	<script src="{{ static_url("dependencies/d3.v3.min.js") }}" type="text/javascript"></script>
+	<script src="{{ static_url("dependencies/colorbrewer.v1.min.js") }}" type="text/javascript"></script>
+	<script src="{{ static_url("dependencies/d3.tip.v0.6.3.js") }}" type="text/javascript"></script>
+
+	<!-- Load online scripts instead of local versions
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 	<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 	<script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
 	<script type="text/javascript" src="http://d3js.org/colorbrewer.v1.min.js"></script>  
 	<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+	-->
 	
 	
 	<!-- Load CSS (Bootstrap, Font Awesome) -->
-	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"/>
-	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"/> <!-- Font Awesome by Dave Gandy - http://fontawesome.io -->
+	<link rel="stylesheet" href="{{ static_url("dependencies/bootstrap-3.3.5-dist/css/bootstrap.min.css") }}" type="text/css" />
+	<link rel="stylesheet" href="{{ static_url("dependencies/font-awesome-4.4.0/css/font-awesome.min.css") }}" type="text/css" /> <!-- Font Awesome by Dave Gandy - http://fontawesome.io -->
 
+	<!-- Load online styles instead of local versions
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"/>
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"/>
+	-->
 
 	<!-- Load custom JS and CSS -->
 	<script src="{{ static_url("pong.js") }}" type="text/javascript"></script>
