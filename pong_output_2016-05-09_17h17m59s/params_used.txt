@@ -1,0 +1,15 @@
+
+-------------------------------------------------------------------
+                            p o n g
+      by A. Behr, K. Liu, G. Liu-Fang, and S. Ramachandran
+                       Version DEV (2016)
+-------------------------------------------------------------------
+-------------------------------------------------------------------
+
+
+pong_filemap file: /Users/sramach/Desktop/Current Projects/pong/pong_exec/pong_examples/benpeter/pong/oceania-K2-5-nruns5.filemap
+Distance metric: jaccard
+Similarity threshold: 0.970000
+Verbose: False
+
+Full command: run_pong.py -m ../pong_exec/pong_examples/benpeter/pong/oceania-K2-5-nruns5.filemap

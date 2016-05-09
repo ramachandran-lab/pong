@@ -263,7 +263,7 @@ def write_json(pong, as_file=False):
 	else:
 		with open(path.join(output_dir,'data.json'),'w') as f:
 			f.write(json.dumps(data))
-
+		return data #barplot, remove when done debugging
 
 
 

@@ -382,7 +382,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 			# run_pong(*run_pong_args)
 		
 		print 'New browser connection; generating visualization'
-		pong_json_data = write.write_json(pongdata, True) #barplot, remove 'True' when done with branch
+		pong_json_data = write.write_json(pongdata, True) #barplot, remove 'True' when done debugging
 
 		self.write_message(json.dumps({'type': 'pong-data',
 			'pong': pong_json_data},))
