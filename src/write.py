@@ -206,7 +206,8 @@ def write_json(pong, as_file=False):
 	if pong.ind2pop is not None:
 		data["popNames"] = pong.popindex2popname
 		data["popSizes"] = pong.pop_sizes
-	
+
+	data["barplot"] = pong.barplot #barplot
 	data["K_min"] = pong.K_min
 	data["K_max"] = pong.K_max
 	data["colors"] = pong.colors
