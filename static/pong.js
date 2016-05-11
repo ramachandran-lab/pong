@@ -69,7 +69,7 @@ socket.onmessage = function(e) {
 
 	if (data.type == 'pong-data') {
 		json = data.pong;
-		boolBarplot = json.barplot
+		boolBarchart = json.barchart
 
 		// update queue and loading screen
 		// Unless pong changes s.t. tornado app calls pong, loading screen should always
@@ -108,8 +108,8 @@ socket.onmessage = function(e) {
 		var minorID = data.minorID;
 		var is_first = data.is_first;
 
-		if(is_minor=='no') generateVis(d3.select('#plot'+data.name), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarplot); //data.matrix3d); 
-		else generateVis(d3.select('#plot'+data.name+'_minor'), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarplot); //data.matrix3d); 
+		if(is_minor=='no') generateVis(d3.select('#plot'+data.name), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarchart); //data.matrix3d); 
+		else generateVis(d3.select('#plot'+data.name+'_minor'), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarchart); //data.matrix3d); 
 
 	} //end q-matrix
 }
@@ -123,7 +123,7 @@ var getQmatrix = function(matrixID, is_minor, minorID, is_first) {
 		'minor': is_minor, 'minorID': minorID, 'is_first': is_first }));
 }
 
-var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolBarplot) {
+var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolBarchart) {
 	if(is_minor=='yes') var indivHeight = plotHeight*0.85;
 	else var indivHeight = plotHeight;
 
@@ -169,7 +169,7 @@ var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolB
 				.attr('width', plotWidth)
 				.attr('id', 'plotSVG_'+majorID);
 	
-	if(boolBarplot) { 
+	if(boolBarchart) { 
 		//stacked rects
 		var indivs = plot.append('g').attr('class', 'indiv');
 		for (c = 0; c < K; c++) { // for each cluster
@@ -334,7 +334,7 @@ var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolB
 	//greying out minor clusters that are different from the major modes
 	d3.select('#whiteout'+K).on('click', function() {
 		for(i in sortedMinorKeys) {
-			greyOutSim(K, sortedMinorKeys[i], colorPerm, indivWidth, boolBarplot);
+			greyOutSim(K, sortedMinorKeys[i], colorPerm, indivWidth, boolBarchart);
 		}
 	});
 	//all other populations in plot grey out when one population clicked
@@ -655,7 +655,7 @@ var sortKeyList = function(currentPlot, keyList) {
 	return sortedMinorKeys;
 }
 //greys out clusters for one minor plot
-var greyOutSim = function(K, minorID, colorPerm, indivWidth, boolBarplot) { 
+var greyOutSim = function(K, minorID, colorPerm, indivWidth, boolBarchart) { 
 		//greying out minor clusters that are different from the major modes
 		var minor_obj = json.qmatrices[K-json.K_min].modes[minorID];
 		if(minor_obj.gray_indices!=null) {
@@ -666,7 +666,7 @@ var greyOutSim = function(K, minorID, colorPerm, indivWidth, boolBarplot) {
 				var cluster_to_grey = '.'+minorID+'_minorCluster'+(greyOutIndex).toString();
 				//greys out one color at a time if visible, pops back up if hidden (oncheck)
 				var footerButton = d3.select('#modal_body_' + K).select('.downloadModalPDF');
-				if(boolBarplot) {
+				if(boolBarchart) {
 					if(d3.selectAll(cluster_to_grey).style('visibility')=='visible') { //if DISTRUCT rectangles are used
 					 	d3.selectAll(cluster_to_grey).style('visibility', 'hidden')
 					 	footerButton.classed('btn btn-primary', true).text("Print highlighting multimodality at K="+K);
