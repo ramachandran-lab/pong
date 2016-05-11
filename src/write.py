@@ -207,7 +207,7 @@ def write_json(pong, as_file=False):
 		data["popNames"] = pong.popindex2popname
 		data["popSizes"] = pong.pop_sizes
 
-	data["barplot"] = pong.barplot #barplot
+	data["barplot"] = pong.barplot 
 	data["K_min"] = pong.K_min
 	data["K_max"] = pong.K_max
 	data["colors"] = pong.colors
@@ -264,7 +264,7 @@ def write_json(pong, as_file=False):
 	else:
 		with open(path.join(output_dir,'data.json'),'w') as f:
 			f.write(json.dumps(data))
-		return data #barplot, remove when done debugging
+		#add 'return data' here if json should be written out; see also ../run_pong.py
 
 
 

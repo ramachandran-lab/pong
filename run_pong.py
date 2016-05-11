@@ -52,7 +52,7 @@ class Pongdata:
 		self.indiv_avg = None
 
 		self.colors = [] # use custom colors?
-		self.barplot = None #barplot
+		self.barplot = None 
 
 		# status attr is only necessary if pong is run from within the server
 		# self.status = 0 # incomplete, working, or complete (0,1,2)
@@ -97,7 +97,7 @@ def main():
 	parser.add_argument('-l','--color_list',
 		help='List of colors to be used for visualization. If this file is not '
 		'included, then default colors will be used for visualization.')
-	parser.add_argument('--barplot', default=False, action='store_true', help='plot membership coefficients as a barplot, versus a linear polygon with interpolation. Recommend for datasets with <=500 individuals.') #barplot
+	parser.add_argument('--barplot', default=False, action='store_true', help='plot membership coefficients as a barplot, versus a linear polygon with interpolation. Recommend for datasets with <=500 individuals.') 
 	parser.add_argument('-f', '--force', default=False,
 		action='store_true', help='force overwrite already existing output '
 		'directory. By default, pong will prompt the user before overwriting.')
@@ -233,8 +233,7 @@ def main():
 	global pongdata
 	pongdata = Pongdata(intro, outputdir, printall)
 	pongdata.colors = colors
-	pongdata.barplot = opts.barplot #barplot
-
+	pongdata.barplot = opts.barplot 
 
 	params_used = intro+'\n\n' # ===============\n
 	params_used += 'pong_filemap file: %s\n' % pong_filemap
@@ -384,7 +383,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 			# run_pong(*run_pong_args)
 		
 		print 'New browser connection; generating visualization'
-		pong_json_data = write.write_json(pongdata, True) #barplot, remove 'True' when done debugging
+		pong_json_data = write.write_json(pongdata) # add 'True' when debugging to get json
 
 		self.write_message(json.dumps({'type': 'pong-data',
 			'pong': pong_json_data},))
