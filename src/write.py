@@ -207,7 +207,7 @@ def write_json(pong, as_file=False):
 		data["popNames"] = pong.popindex2popname
 		data["popSizes"] = pong.pop_sizes
 
-	data["barplot"] = pong.barplot 
+	data["barchart"] = pong.barchart 
 	data["K_min"] = pong.K_min
 	data["K_max"] = pong.K_max
 	data["colors"] = pong.colors
