@@ -70,6 +70,7 @@ socket.onmessage = function(e) {
 	if (data.type == 'pong-data') {
 		json = data.pong;
 		boolBarchart = json.barchart
+		sim_threshold = json.sim_threshold //sim_threshold
 
 		// update queue and loading screen
 		// Unless pong changes s.t. tornado app calls pong, loading screen should always
@@ -108,8 +109,8 @@ socket.onmessage = function(e) {
 		var minorID = data.minorID;
 		var is_first = data.is_first;
 
-		if(is_minor=='no') generateVis(d3.select('#plot'+data.name), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarchart); //data.matrix3d); 
-		else generateVis(d3.select('#plot'+data.name+'_minor'), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarchart); //data.matrix3d); 
+		if(is_minor=='no') generateVis(d3.select('#plot'+data.name), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarchart, -9); //data.matrix3d); 
+		else generateVis(d3.select('#plot'+data.name+'_minor'), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarchart, sim_threshold); //data.matrix3d); //sim_threshold; shouldn't need threshold to be passed in line above when main viz is generated
 
 	} //end q-matrix
 }
@@ -123,7 +124,7 @@ var getQmatrix = function(matrixID, is_minor, minorID, is_first) {
 		'minor': is_minor, 'minorID': minorID, 'is_first': is_first }));
 }
 
-var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolBarchart) {
+var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolBarchart, sim_threshold) {
 	if(is_minor=='yes') var indivHeight = plotHeight*0.85;
 	else var indivHeight = plotHeight;
 
@@ -331,12 +332,15 @@ var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolB
 
 	} //end population delineations
 
-	//greying out minor clusters that are different from the major modes
+	//greying out minor clusters that are different from the major modes //sim_threshold - this is where the action must happen
+	
+	
 	d3.select('#whiteout'+K).on('click', function() {
 		for(i in sortedMinorKeys) {
 			greyOutSim(K, sortedMinorKeys[i], colorPerm, indivWidth, boolBarchart);
 		}
 	});
+
 	//all other populations in plot grey out when one population clicked
 	d3.selectAll('.popNum').on('click', function() {
 		var id = this.id;
@@ -521,6 +525,8 @@ var modal = function(K, sortedMinorKeys, button, buttonDiv, viz) {
 			.attr('class', 'modal-header')
 			.attr('id', 'modal_header2_'+K);
 
+		//sim_threshold - can I set up checkbox as readonly if index to gray has length 0 across all modes?
+
 		var checkbox = modal_header2.append('label').attr('class', 'checkbox-inline');
 		checkbox.append('input').attr('type', 'checkbox')
 								.attr('class', 'check-input')
@@ -658,6 +664,8 @@ var sortKeyList = function(currentPlot, keyList) {
 var greyOutSim = function(K, minorID, colorPerm, indivWidth, boolBarchart) { 
 		//greying out minor clusters that are different from the major modes
 		var minor_obj = json.qmatrices[K-json.K_min].modes[minorID];
+		console.log(minor_obj) //sim_threshold
+		console.log("gray_indices for minorID "+minorID+" is = "+minor_obj.gray_indices) //sim_threshold
 		if(minor_obj.gray_indices!=null) {
 			var gray_indices = minor_obj.gray_indices;
 

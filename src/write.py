@@ -211,6 +211,7 @@ def write_json(pong, as_file=False):
 	data["K_min"] = pong.K_min
 	data["K_max"] = pong.K_max
 	data["colors"] = pong.colors
+	data["sim_threshold"] = pong.sim_threshold
 
 	data["qmatrices"] = []
 	for kgroup in all_kgroups:
@@ -264,7 +265,7 @@ def write_json(pong, as_file=False):
 	else:
 		with open(path.join(output_dir,'data.json'),'w') as f:
 			f.write(json.dumps(data))
-		#add 'return data' here if json should be written out; see also ../run_pong.py
+		return data #add 'return data' here if json should be written out; see also ../run_pong.py
 
 
 
