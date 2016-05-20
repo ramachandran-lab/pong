@@ -537,6 +537,16 @@ var modal = function(K, sortedMinorKeys, button, buttonDiv, viz) {
 			.attr('class', 'checkbox-caption')
 			.text('\nCheck to highlight multimodality: ');
 
+		//sim_threshold block
+		for (i=0; i<sortedMinorKeys.length; i++) {
+		    var minorID = sortedMinorKeys[i];
+		    minor_obj = json.qmatrices[K-json.K_min].modes[minorID];
+		    console.log(K + " " + minorID + ": gray_indices.length = " + minor_obj.gray_indices.length);
+		    if(minor_obj.gray_indices.length==0) {
+			//
+		    } 
+		} //end sim_threshold block
+
 		//pushing weird major plot:
 		var majorID = json.qmatrices[K-json.K_min].major_mode_runid;
 		plot = d3.select('#modal_header2_'+K).append('svg')
@@ -664,8 +674,10 @@ var sortKeyList = function(currentPlot, keyList) {
 var greyOutSim = function(K, minorID, colorPerm, indivWidth, boolBarchart) { 
 		//greying out minor clusters that are different from the major modes
 		var minor_obj = json.qmatrices[K-json.K_min].modes[minorID];
+		console.log(json.qmatrices[K-json.K_min]); //sim_threshold - does major mode have any indices to grey info, or is it just in minor modes? NO GRAY INDICES IN MAJOR MODE; WOOT
 		console.log(minor_obj) //sim_threshold
 		console.log("gray_indices for minorID "+minorID+" is = "+minor_obj.gray_indices) //sim_threshold
+		console.log("sim_threshold is = " + json.sim_threshold) //sim_threshold
 		if(minor_obj.gray_indices!=null) {
 			var gray_indices = minor_obj.gray_indices;
 
