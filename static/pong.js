@@ -70,7 +70,7 @@ socket.onmessage = function(e) {
 	if (data.type == 'pong-data') {
 		json = data.pong;
 		boolBarchart = json.barchart
-		sim_threshold = json.sim_threshold //sim_threshold
+		sim_threshold = json.sim_threshold
 
 		// update queue and loading screen
 		// Unless pong changes s.t. tornado app calls pong, loading screen should always
@@ -109,8 +109,8 @@ socket.onmessage = function(e) {
 		var minorID = data.minorID;
 		var is_first = data.is_first;
 
-		if(is_minor=='no') generateVis(d3.select('#plot'+data.name), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarchart, -9); //data.matrix3d); 
-		else generateVis(d3.select('#plot'+data.name+'_minor'), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarchart, sim_threshold); //data.matrix3d); //sim_threshold; shouldn't need threshold to be passed in line above when main viz is generated
+		if(is_minor=='no') generateVis(d3.select('#plot'+data.name), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarchart); //data.matrix3d); 
+		else generateVis(d3.select('#plot'+data.name+'_minor'), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarchart); //data.matrix3d); 
 
 	} //end q-matrix
 }
@@ -124,7 +124,7 @@ var getQmatrix = function(matrixID, is_minor, minorID, is_first) {
 		'minor': is_minor, 'minorID': minorID, 'is_first': is_first }));
 }
 
-var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolBarchart, sim_threshold) {
+var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolBarchart) {
 	if(is_minor=='yes') var indivHeight = plotHeight*0.85;
 	else var indivHeight = plotHeight;
 
@@ -332,7 +332,7 @@ var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolB
 
 	} //end population delineations
 
-	//greying out minor clusters that are different from the major modes //sim_threshold - this is where the action must happen
+	//greying out minor clusters that are different from the major modes 
 	
 	
 	d3.select('#whiteout'+K).on('click', function() {
@@ -413,15 +413,16 @@ var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolB
 	  e.preventDefault();
 	  saveSVG(currentPlot, is_minor, svg, myID).print(); //print this svg
 	});
-
+	
+	//enabling all bootstrap tooltips (modal sim_threshold messaging)
+	$(document).ready(function(){
+  	  $('[data-toggle="tooltip"]').tooltip(); 
+	});
 
 	queue--;
 	if (queue === 0) {
 		$('#loading').delay(200).fadeOut();
 	}
-
-
-
 
 } //end generateVis
 
@@ -525,27 +526,38 @@ var modal = function(K, sortedMinorKeys, button, buttonDiv, viz) {
 			.attr('class', 'modal-header')
 			.attr('id', 'modal_header2_'+K);
 
-		//sim_threshold - can I set up checkbox as readonly if index to gray has length 0 across all modes?
-
-		var checkbox = modal_header2.append('label').attr('class', 'checkbox-inline');
-		checkbox.append('input').attr('type', 'checkbox')
-								.attr('class', 'check-input')
-								.attr('id', 'whiteout'+K);	
-		checkbox.style('position', 'relative').style('top', '4px');
-
-		var checkbox_caption = modal_header2.append('text')
-			.attr('class', 'checkbox-caption')
-			.text('\nCheck to highlight multimodality: ');
-
-		//sim_threshold block
+		dirtyGray = 0; //dirty bit to figure out if gray indices exist
 		for (i=0; i<sortedMinorKeys.length; i++) {
 		    var minorID = sortedMinorKeys[i];
 		    minor_obj = json.qmatrices[K-json.K_min].modes[minorID];
-		    console.log(K + " " + minorID + ": gray_indices.length = " + minor_obj.gray_indices.length);
-		    if(minor_obj.gray_indices.length==0) {
-			//
+		    if(minor_obj.gray_indices.length!=0) {
+		    	dirtyGray = 1;
+		    	break;
 		    } 
-		} //end sim_threshold block
+		}
+		if(dirtyGray) { //enable multimodality highlighting
+			var checkbox = modal_header2.append('label').attr('class', 'checkbox-inline');
+			checkbox.append('input').attr('type', 'checkbox')
+									.attr('class', 'check-input')
+									.attr('id', 'whiteout'+K);	
+			checkbox.style('position', 'relative').style('top', '4px');
+
+			var checkbox_caption = modal_header2.append('text')
+				.attr('class', 'checkbox-caption')
+				.text('\nCheck to highlight multimodality: ');
+		}
+		else { //if no clusters can be greyed out in minor modes, give a proper error message
+			if(sortedMinorKeys.length==1) mymodestr = "minor mode"; //making the error message case appropriate
+			else mymodestr = "minor modes";
+			//messaging is achieved with bootstrap danger button and a bootstrap tooltip
+			modal_header2.append('button').attr('type', 'submit')
+							.attr('class', 'btn btn-danger btn-small pull-right')
+							.attr('id', 'highlightMM_'+K)
+							.attr('data-toggle', 'tooltip')
+							.attr('data-placement', 'left')
+							.attr('title', 'Similarity between corresponding clusters in the major mode and '+mymodestr+' is less than the similarity threshold of '+json.sim_threshold+'. Lower the similarity threshold in pong\'s command line to enable highlighting.')
+							.text('Why can\'t I highlight multimodality?')
+		}
 
 		//pushing weird major plot:
 		var majorID = json.qmatrices[K-json.K_min].major_mode_runid;
@@ -674,10 +686,6 @@ var sortKeyList = function(currentPlot, keyList) {
 var greyOutSim = function(K, minorID, colorPerm, indivWidth, boolBarchart) { 
 		//greying out minor clusters that are different from the major modes
 		var minor_obj = json.qmatrices[K-json.K_min].modes[minorID];
-		console.log(json.qmatrices[K-json.K_min]); //sim_threshold - does major mode have any indices to grey info, or is it just in minor modes? NO GRAY INDICES IN MAJOR MODE; WOOT
-		console.log(minor_obj) //sim_threshold
-		console.log("gray_indices for minorID "+minorID+" is = "+minor_obj.gray_indices) //sim_threshold
-		console.log("sim_threshold is = " + json.sim_threshold) //sim_threshold
 		if(minor_obj.gray_indices!=null) {
 			var gray_indices = minor_obj.gray_indices;
 
@@ -717,10 +725,6 @@ var similarity = function(svg, K) {
 		simMode = d3.select('#title'+K).append('h4')
 					.text('\nAvg pairwise similarity among modes = '+avg_sim_bt_modes);
 } //end similarity
-
-
-
-
 
 //MOUSEOVER TIP
 var tip = d3.tip()

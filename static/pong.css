@@ -154,7 +154,11 @@ svg {
   top: 50%;
   left: -8px;
 }
-
+.btn-danger + .tooltip > .tooltip-inner {
+  padding: 7px;
+  font-size: 14px;
+  text-align: left;
+}
 
 .modal-dialog {
   position: absolute;

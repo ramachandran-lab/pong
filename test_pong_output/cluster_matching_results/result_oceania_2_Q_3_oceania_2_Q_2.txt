@@ -1,0 +1,10 @@
+Comparing oceania_2_Q_3 with oceania_2_Q_2.
+Avg. similarity = 0.999972
+
+cluster 1:
+	(1,): 0.999973
+	(2,): 0.365137
+
+cluster 2:
+	(2,): 0.999972
+	(1,): 0.365137

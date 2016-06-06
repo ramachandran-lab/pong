@@ -1,0 +1,47 @@
+
+-------------------------------------------------------------------
+                            p o n g
+      by A. Behr, K. Liu, G. Liu-Fang, and S. Ramachandran
+                       Version DEV (2016)
+-------------------------------------------------------------------
+-------------------------------------------------------------------
+
+
+Results summary
+===============
+
+____________________________________________K=2
+Number of runs: 5
+Major mode: oceania_2_Q_0
+
+Representative runs: oceania_2_Q_0
+	oceania_2_Q_0 represents 5 runs: runs oceania_2_Q_0, oceania_2_Q_3, oceania_2_Q_4, oceania_2_Q_1, oceania_2_Q_2. Avg sim within = 0.999985
+
+____________________________________________K=3
+Number of runs: 5
+Major mode: oceania_3_Q_2
+
+Representative runs: oceania_3_Q_2, oceania_3_Q_0
+	oceania_3_Q_2 represents 4 runs: runs oceania_3_Q_2, oceania_3_Q_1, oceania_3_Q_3, oceania_3_Q_4. Avg sim within = 0.999995
+	oceania_3_Q_0 represents 1 run: run oceania_3_Q_0
+Avg sim between modes = 0.689503
+
+____________________________________________K=4
+Number of runs: 5
+Major mode: oceania_4_Q_0
+
+Representative runs: oceania_4_Q_0, oceania_4_Q_1
+	oceania_4_Q_0 represents 3 runs: runs oceania_4_Q_0, oceania_4_Q_2, oceania_4_Q_3. Avg sim within = 0.989024
+	oceania_4_Q_1 represents 2 runs: runs oceania_4_Q_1, oceania_4_Q_4. Avg sim within = 0.989945
+Avg sim between modes = 0.838252
+
+____________________________________________K=5
+Number of runs: 5
+Major mode: oceania_5_Q_2
+
+Representative runs: oceania_5_Q_2, oceania_5_Q_4, oceania_5_Q_1
+	oceania_5_Q_2 represents 2 runs: runs oceania_5_Q_2, oceania_5_Q_0. Avg sim within = 0.995169
+	oceania_5_Q_4 represents 2 runs: runs oceania_5_Q_4, oceania_5_Q_3. Avg sim within = 0.978433
+	oceania_5_Q_1 represents 1 run: run oceania_5_Q_1
+Avg sim between modes = 0.849155
+
