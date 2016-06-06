@@ -242,7 +242,7 @@ def main():
 	params_used += 'Verbose: %s\n' % str(pongdata.print_all)
 	params_used += '\nFull command: ' + ' '.join(sys.argv[:]) + '\n'
 
-	pongdata.sim_threshold = opts.sim_threshold #sim_threshold
+	pongdata.sim_threshold = opts.sim_threshold
 
 	with open(os.path.join(pongdata.output_dir,'params_used.txt'),'w') as f:
 		f.write(params_used)
@@ -385,7 +385,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 			# run_pong(*run_pong_args)
 		
 		print 'New browser connection; generating visualization'
-		pong_json_data = write.write_json(pongdata, 'True') # add 'True' when debugging to get json
+		pong_json_data = write.write_json(pongdata) # add 'True' when debugging to get json
 
 		self.write_message(json.dumps({'type': 'pong-data',
 			'pong': pong_json_data},))
