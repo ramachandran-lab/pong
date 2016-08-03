@@ -1,37 +1,72 @@
 $(document).ready(function() {
 
-// force scrolling to the top of the page on reload s.t. loading screen displays correctly
+// force scrolling to the top of the page on reload s.t. loading screen 
+// displays correctly
 $(window).on('beforeunload', function() {
-    $(window).scrollTop(0);
+	$(window).scrollTop(0);
 });
 
 $('#loading').fadeIn();
 
-/* SET EVERYTHING UP */
-var windowWidth = window.innerWidth;
-var windowHeight = window.innerHeight;
-var svgWidth = windowWidth*0.9;
-var svgHeight = 160; // this could maybe be user-defined?
+// Define global variables
+var windowWidth = window.innerWidth,
+	windowHeight = window.innerHeight,
+	svgWidth = windowWidth * 0.9,
+	svgHeight = 160;
 
-var all_svg, minor_svg, json; // main global variables
-var popNames, popSizes; // var popNum, popOrder;
-var plotWidth;
-var indivWidth;
-var plotHeight = svgHeight*0.8;
-var labelFontSize = 20; // or can we get this directly from the CSS?
-var labelRotate = 45;
-var labelDistFromPlot = 17;
-var xStart;
+var all_svg, 
+	minor_svg, 
+	json,
+	popNames, 
+	popSizes,
+	plotWidth,
+	minorWidth,
+	indivWidth,
+	translate,
+	xStart,
+	xMax,
+	bgColor = "black",
+	plotHeight = svgHeight * 0.8,
+	labelFontSize = 20, // or can we get this directly from the CSS?
+	labelRotate = 45,
+	labelDistFromPlot = 10,
+	labelLeftPad = 5,
+	clusterClick = false,
+	popClick = false,
+	grayClick = false;
+
+var stack = d3.stack();
+
+var area = d3.area()
+	.x(function(d, i) { return xScale(d.data.index); })
+	.y0(function(d) { return yScale(d[0]); })
+	.y1(function(d) { return yScale(d[1]); })
+	.curve(d3.curveStepAfter);
 	
-// Default color scheme (overwritten if custom colors provided). WHAT IF THERE ARE >9 CLUSTERS?
-var colors = colorbrewer.Set1[9];
-var colors_26 = ["#f0a3ff", "#0075dc", "#993f00", "#4c005c", "#191919", "#005c31",
-	"#2bce48", "#ffcc99", "#808080", "#94ffb5", "#8f7c00", "#9dcc00", "#c20088", "#003380", "#ffa405",
-	"#ffa8bb", "#426600", "#ff0010", "#5ef1f2", "#00998f", "#e0ff66", "#740aff", "#990000", "#ffff80",
-	"#ffff00", "#ff5005"]
+// Default color scheme (overwritten if custom colors provided).
+
+//var colors = colorbrewer.Set1[9];
+
+//var colors = ["#66c2a5","#fc8d62","#8da0cb","#e78ac3",
+//	"#a6d854","#ffd92f","#e5c494","#b3b3b3"];
+
+var colors = ["#E04B4B", "#6094C3", "#63BC6A", "#A76BB2", "#F0934E",
+	"#FEFB54", "#B37855", "#EF91CA", "#A4A4A4"];
+
+var colors_26 = ["#f0a3ff", "#0075dc", "#993f00", "#4c005c", "#191919", 
+	"#005c31", "#2bce48", "#ffcc99", "#808080", "#94ffb5", "#8f7c00", 
+	"#9dcc00", "#c20088", "#003380", "#ffa405", "#ffa8bb", "#426600", 
+	"#ff0010", "#5ef1f2", "#00998f", "#e0ff66", "#740aff", "#990000", 
+	"#ffff80", "#ffff00", "#ff5005"];
 
 var queue = 0; // number of plots queued
 var json;
+
+var xScale = d3.scale.linear(),
+	yScale = d3.scale.linear();
+
+var zoom = d3.behavior.zoom().on("zoom", draw);
+var xAxis;
 
 var popClicked = new Array();
 
@@ -41,15 +76,15 @@ var browserWindowWidth = $(window).width();
 
 // window resize handler
 $(window).resize(function() {
-    // only care if the width changes, not height
-    if ($(this).width() != browserWindowWidth) {
-      browserWindowWidth = $(this).width();
-      if(this.resizeTO) clearTimeout(this.resizeTO);
-      // only fire event if user has finished resizing the window
-      this.resizeTO = setTimeout(function() {
-          $('#resize-warning-nav').show();
-      }, 500);
-    }
+	// only care if the width changes, not height
+	if ($(this).width() != browserWindowWidth) {
+	  browserWindowWidth = $(this).width();
+	  if(this.resizeTO) clearTimeout(this.resizeTO);
+	  // only fire event if user has finished resizing the window
+	  this.resizeTO = setTimeout(function() {
+		  $('#resize-warning-nav').show();
+	  }, 500);
+	}
 });
 
 // click X button to clear the notification
@@ -58,365 +93,271 @@ $('#resize-warning-exit').click(function(){
 });
 /* ========================================================================= */
 
-
-
-
 // SOCKET THINGS
 var url = "ws://" + location.host + "/pongsocket";
 var socket = new WebSocket(url);
 socket.onmessage = function(e) {
 	var data = JSON.parse(e.data);
-
 	if (data.type == 'pong-data') {
 		json = data.pong;
-		boolBarchart = json.barchart
-		sim_threshold = json.sim_threshold
 
-		// update queue and loading screen
-		// Unless pong changes s.t. tornado app calls pong, loading screen should always
-		// occur when receiving pong-data because this will only happen on window load.
 		$('#loading').fadeIn();
 		queue += json.qmatrices.length;
 
 		popNames = json.popNames;
 		popSizes = json.popSizes
-		if (json.colors.length > 0) { 
-			colors = json.colors; // use custom colors if they exist
-		}
-		else if (json.K_max > 9) {
-			colors = colors_26;
-		}
+
+		if (json.colors.length > 0) colors = json.colors;
+		else if (json.K_max > 9) colors = colors_26;
 		all_svg = new Array();
 
-		for (i=0; i<json.qmatrices.length; i++) {
-
-			//appending major mode rep runs
-			majorID = json.qmatrices[i].major_mode_runid;
-			plot = d3.select('#visualization').append('svg')
-					.attr("width", svgWidth)
-					.attr("height", svgHeight+15)
-					.attr('class', 'majorSVG')
-					.attr("id", "plot"+majorID);
+		for (i = 0; i < json.qmatrices.length; i++) {
+			// appending major mode rep runs
+			var majorID = json.qmatrices[i].major_mode_runid;
+			plot = d3.select('#visualization')
+				.append('svg')
+				.attr("width", svgWidth)
+				.attr("height", svgHeight+15)
+				.attr('class', 'majorSVG ' + json.qmatrices[i].K)
+				.attr("id", "plot"+majorID);
 			all_svg.push(plot);
 			getQmatrix(majorID, 'no', null, null);
 		}
-
-
-	} //end pong-data
-
-	else if (data.type == 'q-matrix') {
-		var is_minor = data.minor;
+	} else if (data.type == 'q-matrix') {
+		var is_minor;
+		if (data.minor == "yes") is_minor = true;
+		else is_minor = false;
 		var minorID = data.minorID;
 		var is_first = data.is_first;
 
-		if(is_minor=='no') generateVis(d3.select('#plot'+data.name), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarchart); //data.matrix3d); 
-		else generateVis(d3.select('#plot'+data.name+'_minor'), data.K, data.matrix2d, data.minor, minorID, is_first, boolBarchart); //data.matrix3d); 
-
-	} //end q-matrix
+		if (!is_minor) {
+			generateVis(d3.select('#plot'+data.name), data.K,
+				data.matrix2d, is_minor, minorID, is_first, data.name);
+		} else {
+			generateVis(d3.select('#plot'+data.name+'_minor'), data.K, 
+				data.matrix2d, is_minor, minorID, is_first, data.name);
+		}
+	}
 }
-// socket.onclose = function(evt) { console.log('CONNECTION CLOSE'); };
-// socket.onopen = function(evt) { console.log('CONNECTION OPEN'); };
 
-
-//sends server info about the matrix to get the qmatrix
+// sends server info about the matrix to get the qmatrix
 var getQmatrix = function(matrixID, is_minor, minorID, is_first) {
 	socket.send(JSON.stringify({ 'type':'get-qmatrix', 'name': matrixID, 
 		'minor': is_minor, 'minorID': minorID, 'is_first': is_first }));
 }
 
-var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolBarchart) {
-	if(is_minor=='yes') var indivHeight = plotHeight*0.85;
-	else var indivHeight = plotHeight;
-
-	var numIndiv = qMatrix2D.length;
+var generateVis = function(svg, K, qData, is_minor, minorID, is_first, name) {
+	var indivHeight = plotHeight;
 	var colorPerm = json.qmatrices[K-json.K_min].color_perm;
-	if(is_minor=='yes') {
-		minorWidth = svgWidth*0.75;
-		plotWidth = minorWidth*0.84;
-		xStart = 0;
-		translate = minorWidth*0.08;
-	} else {
-		plotWidth = svgWidth*0.84;
-		translate = svgWidth*0.08;
-		xStart = 0;
-	}
-	indivWidth = plotWidth/numIndiv; // or Math.ceil(plotWidth/numIndiv);
+	plotWidth = svgWidth * 0.84;
+	translate = svgWidth * 0.08;
+	xStart = 0;
 
 	var currentPlot = json.qmatrices[K-json.K_min];
 	var majorID = currentPlot.major_mode_runid;
 
-	//keyList is a list of minor mode ids for a K value
+	// keyList is a list of minor mode ids for a K value
 	var keyList = Object.keys(currentPlot.modes);
 	var major = keyList.indexOf(majorID);
-	if(major > -1) {keyList.splice(major, 1);}
+	if (major > -1) keyList.splice(major, 1);
 
-	var sortedMinorKeys = sortKeyList(currentPlot, keyList); //minor IDs of current K val
-	//keyList should be in order
-	if(keyList.length!=0 && is_minor=='no') { 
-		queue += keyList.length+1; // one more because we're going to re-add the major mode at the top of the modal	
+	// minor IDs of current K val
+	var sortedMinorKeys = sortKeyList(currentPlot, keyList);
+	// keyList should be in order
+	if (keyList.length!=0 && !is_minor) { 
+		queue += keyList.length+1; 
+		// +1 because we're going to re-add the major at the top of the modal	
 		buttons(K, sortedMinorKeys);
 	} 
 
-	if(is_minor=='no') {
+	if (!is_minor) {
 		printLabels(svg, K, currentPlot);
 		similarity(svg, K, majorID);
 	}
 	else printMinorLabels(svg, currentPlot, minorID, is_first);
 
-	var translatey = 15;
-	var wrap = svg.append('g').attr('transform', 'translate('+ translate + ', ' + translatey +')'); //SR changed y translate from 0 to push svg down so Avg sim could be seen.
-	var plot = wrap.append('svg')
-				.attr('class', 'plotSVG')
-				.attr('width', plotWidth)
-				.attr('id', 'plotSVG_'+majorID);
-	
-	if(boolBarchart) { 
-		//stacked rects
-		var indivs = plot.append('g').attr('class', 'indiv');
-		for (c = 0; c < K; c++) { // for each cluster
-			if(is_minor=='yes' && is_first=='no')
-				var indivClass = minorID+"_minorCluster"+(colorPerm[c]).toString();
-			else var indivClass = "cluster"+(c+1).toString();
-			var cluster = indivs.selectAll("rect."+indivClass).data(qMatrix2D).enter().append("rect"); //each datum is an individual
-		//creates rectangles like DISTRUCT, but adds computational time O(N*K per plot) versus O(K) with line charts
-			cluster.attr({ 
-				x: function(d,i) { //d is basically one q matrix row
-					return xStart + i*(indivWidth);
-				}, 
-				y: function(d) { //returns the y of where the rectangle starts
-					h = 0; // sum of heights of all previous clusters (count backwards to flip vertical order)
-					// note that if we wanted to flip it back, we would go from 0 < c, instead of c+1 < K
-					for (x = c+1; x < K; x++) {
-						h = h + d[x]*indivHeight; //d[x] is one number in the matrix array, any number but first
+	var translateY = 15;
+	var border = 5;
+	svg.append("rect") // black background rectangle
+		.attr("class", "background")
+		.attr("x", translate - border/2)
+		.attr("y", translateY - border/2)
+		.attr("height", indivHeight + border)
+		.attr("width", plotWidth + border)
+		.attr("fill", bgColor);
+
+	var chart = svg.append('g')
+		.attr('transform', 'translate(' + translate + ', ' + translateY + ')')
+		.attr("class", "chart")
+		.attr("clip-path", "url(#clip)");
+
+	chart.append("clipPath")
+		.attr("id", "clip")
+		.append("rect")
+		.attr("width", plotWidth)
+		.attr("height", indivHeight + 50);	
+
+	// xMax is index of last member of last population (+1 b/c curveStep)
+	xMax = 1 + qData.slice(-1)[0].members.slice(-1)[0].index;
+	xScale.range([0, plotWidth]).domain([0, xMax]);
+	yScale.range([indivHeight, 0]).domain([0, 1]);
+
+	// draw lines at index of 1st member of every population
+	tickVals = [];
+	qData.forEach(function(p) { tickVals.push(p.members[0].index); });
+
+	var keys = Object.keys(qData[0].members[0])
+		.filter(function(e) { return e != "index"; })
+		.sort(sortCluster);
+	stack.keys(keys);
+
+	var pops = chart.selectAll(".pops")
+		.data(qData)
+		.enter() // one g per population
+		.append("g")
+		.attr("class", function(d) {
+			return "pops " + "population" + d.population_index;
+		});
+
+	var layer = pops.selectAll(".layer")
+		.data(function(d) { 
+			var stackObject = stack(d.members);
+			for (var i = 0; i < stackObject.length; i++) {
+				stackObject[i].population_index = d.population_index;
+				stackObject[i].K = K;
+				stackObject[i].indiv_avg = 
+					json.indiv_avg[name][d.population_index];
+			}
+			return stackObject; 
+		})
+		.enter() // one layer for every cluster
+		.append("g")
+		.attr("class", "layer");
+
+	layer.append("path")
+		.attr("class", function(d, i) {
+			var className = "area ";
+			if (is_minor) className += minorID+"_minorCluster"+colorPerm[i] + " ";
+			className += "K" + d.K + " population" + d.population_index + 
+				" cluster" + colorPerm[i];
+			return className;
+		})
+		.style("fill", function(d, i) { return colors[colorPerm[i]]; })
+		.attr("d", function(d,i) {
+			var fakePerson = [0,0]; // need this to see last bar in population
+			fakePerson.data = {index: d[d.length-1].data.index + 1};
+			d[d.length] = fakePerson;
+			return(area(d));
+		})
+		.on("click", function(thisDat) {
+			if (!grayClick) { // if the multimodality checkbox is unchecked 
+				d3.selectAll("path.area").style("fill", function(thatDat) {
+					var localColors = json.qmatrices[thatDat.K-json.K_min].color_perm;
+					if (!clusterClick) {
+						if (localColors[parseInt(thatDat.key.slice(7)) - 1] != colorPerm[parseInt(thisDat.key.slice(7)) - 1]) {
+							return "white";
+						} else {
+							return colors[localColors[parseInt(thatDat.key.slice(7)) - 1]];
+						}
+					} else {
+						return colors[localColors[parseInt(thatDat.key.slice(7)) - 1]];
 					}
-					return h; //total percentage of indivHeight for one row of q matrix, except for d[0]
-				},
-				width: indivWidth,
-				height: function(d) {return d[c]*indivHeight; }, 
-				class: indivClass
-			}); //end cluster attr
-			cluster.style("fill", colors[colorPerm[c]]).style("stroke", colors[colorPerm[c]]); //order of filling colors
-		} //end for
-	}
-	else {
-		var clusters = plot.append('g').attr('class', 'clustergroup').attr('id', 'clusters_'+K); //LINE_CHART
-	
-		var xScale = d3.scale.linear().range([0, plotWidth]).domain([0, numIndiv-1]); //LINE_CHART
-		var yScale = d3.scale.linear().range([0, indivHeight]).domain([0, 1]);
+				});
+				if (!clusterClick) d3.selectAll(".check-input").attr("disabled", "disabled");
+				else d3.selectAll(".check-input").attr("disabled", null);
+				clusterClick = !clusterClick;
+			}
+		});
 
-		for (c = 0; c < K; c++) { // for each cluster
-		
-		var cluster_c = new Array(); //LINE_CHART needs each cluster as a list
-		for (i = 0; i < numIndiv; i++) {
-			cluster_c.push([i,qMatrix2D[i][c]]);
-		}
-		if(is_minor=='yes') var clusterClass = minorID+"_minorCluster"+(colorPerm[c]).toString();
-		else var clusterClass = "cluster_"+K+'_'+(c+1).toString();
+	var paths = d3.selectAll("path.area");
+	paths.call(zoom)
+		.call(tip)
+		.on('mouseover', tip.show)
+		.on('mouseout', tip.hide)
+		.on("dblclick.zoom", null);;
 
-		//d3.svg.area generating function for each of the K polygons
-		var cluster_lineGen = d3.svg.area().x( 
-		  	function(d) {
-		  		return xScale(d[0]); 
-		  	}).y1(
-		  	function(d) {
-		 		myy = d[1];
-		 		for (clus = c+1; clus < K; clus++) {
-		 			myy = myy + qMatrix2D[d[0]][clus];
-		 		}
-		 		return yScale(myy);
-			}).y0(
-			function(d) {
-				return yScale(0);
-			}).interpolate("linear")//.interpolate("linear").tension(0)//
-		; //end cluster_lineGen
+	xAxis = d3.svg.axis()
+		.scale(xScale)
+		.orient("bottom")
+		.tickValues(tickVals)
+		.tickFormat("")
+		.tickSize(-indivHeight);
 
-		clusters.append('svg:path').attr('class', clusterClass).attr('id', 'clusters_'+K+'_'+c).attr("d", cluster_lineGen(cluster_c)).attr('stroke', colors[colorPerm[c]]).attr('stroke-width', 0.3).attr('fill', colors[colorPerm[c]]);//.attr('fill', 'none');//; //LINE_CHART
+	chart.append("g")
+	    .attr("class", "x axis")
+	    .attr("transform", "translate(0," + indivHeight + ")")
+	    .style("fill", "none")
+	    .style("stroke", bgColor)
+	    .call(xAxis);
 
-		} //end for
-	}
-	
-	//pops are the invisible rectangles used for mouseover later
-	var pops = plot.append('g').attr('class', 'pop');
-	if(is_minor=='yes') {
-		var minorPops = plot.append('g').attr('class', 'minorPop'+K);
-	}
-	
-	var prevWidth = xStart, currentWidth = xStart, xval = xStart; 
+	// min zoom: 1x; max zoom: 20x
+	zoom.x(xScale).scaleExtent([1, 20]);
 
-	//population delineations:
-	if(popSizes!=null) {
-		for(var i=0; i<popSizes.length; i++) {
-
-			pops.call(tip);
-
-			//these are the invisible population rectangles for mouseover
-			if(is_minor=='no') {
-				var population = pops.selectAll('rect') //one datum is all the indivs in one population
-					.data(json.indiv_avg[majorID])
-					.enter()
-					.append('rect')
-					.on("mouseover", tip.show)
-					.on('mouseout', tip.hide);
-			} else {
-				var population = minorPops.selectAll('rect') //one datum is all the indivs in one population
-					.data(json.indiv_avg[minorID])
-					.enter()
-					.append('rect')
-					.on('mouseover', minorTip.show)
-					.on('mouseout', minorTip.hide);
-
-			} //else
-
-
-			//grab currently highlighted populations onclick
-			d3.select('#vizButton').on('click', function() {
-				var vizPops = new Array(); //array of class names of populations clicked
-				for(popNum=1; popNum<popSizes.length+1; popNum++) { //from 1 to number of populations
-					var currentPopClass = '.pop'+popNum.toString();
-					if(d3.selectAll(currentPopClass).style('fill')=='rgba(0, 0, 0, 0)') {
-						vizPops.push(currentPopClass);
-					}
-				} //end for
-				d3.selectAll('.modal-title-viz')
-					.html(function() {
-					var head = '<h2>Visualizing populations:  </h2>';
-					var str = '';
-					for(i in vizPops) {
-						var o = vizPops[i].indexOf('o'); //get index of 'o'
-						var num = vizPops[i].substring(o+2); //get population number
-						var popName = popNames[num-1];
-						str+=popName + ', ';
-					}
-					return head+'<h3 style="color: rgb(70, 184, 218)">' //twitter blue
-							+str.substring(0, str.length-2)+'</h3>'; //to cut off last comma
-				})
-			}); //end viz click
-
-			//when dialog box opens, enable d3 tip:
-			d3.selectAll('.modes').on('click', function() {
-				var id = this.id;
-				var k = id.split('-')[1];
-
-				d3.selectAll('.minorPop'+k).call(minorTip);
-			}) 
-
-			population.attr({
-				class: function(d,i) {
-					if(is_minor=='no') return 'popNum pop'+(i+1);
-					else return 'minorPopNum minorPlot'+minorID; //use minorID here to specify between plots
-				},
-				id: function(d,j) {
-					if(is_minor=='no') return 'k'+K +'p'+(j+1); //j+1 is population number
-					else return 'minor_'+minorID+'_p'+(j+1);
-				},
-				// id: function(d,i) {return popOrder[i]},
-				x: function(d,i) { //d is length of one pop, i goes to popOrder.length
-					var x = xval;
-					xval += popSizes[i]*indivWidth;
-					return x;
-				},
-	
-				y: 0,
-				width: function(d,i) { return popSizes[i]*indivWidth; },
-				height: indivHeight
-			});
-
-			 population.style('fill', 'transparent');
-			 population.style('stroke', 'black');
-
-
-			prevWidth = currentWidth;
-			currentWidth += popSizes[i]*indivWidth;
-
-		} //end for
-
-	} //end population delineations
-
-	//greying out minor clusters that are different from the major modes 
-	
-	
+	// graying out minor clusters that are different from the major modes 
 	d3.select('#whiteout'+K).on('click', function() {
-		for(i in sortedMinorKeys) {
-			greyOutSim(K, sortedMinorKeys[i], colorPerm, indivWidth, boolBarchart);
+		for (i in sortedMinorKeys) {
+			grayOutSim(K, sortedMinorKeys[i], colorPerm, indivWidth);
 		}
+		grayClick = !grayClick;
 	});
 
-	//all other populations in plot grey out when one population clicked
-	d3.selectAll('.popNum').on('click', function() {
-		var id = this.id;
-		var p = id.indexOf('p');
-		var pop_num = id.substring(p+1);
-
-		if(d3.event.shiftKey) { //if the shift key is held down 
-			//just highlight the population clicked; don't grey out extras
-			d3.selectAll('.pop'+pop_num.toString()).style('fill', 'transparent');
-		} else {
-			//grey all pops in that plot
-			var majorGrey = d3.selectAll('.popNum')
-					.style('fill', 'grey')
-					.style('opacity', '0.85');
-			//clear out clicked population
-			d3.selectAll('.pop'+pop_num.toString())
-					.style('fill', 'transparent');
-			
-		} //end else
-	}); //end d3 select major
-
-
-	//when clicked outside plot, all pops no longer greyed out
-	$(document).mouseup(function (e) {
-	    var plot = $(".popNum");
-	    var button = $('.buttonDiv');
-	    var vizButton = $('#vizButton');
-	    //dialog mouseup:
-	    var dialog = $('.modal-content'); //inside dialog box
-
-	    if (!plot.is(e.target) && !button.is(e.target) && !vizButton.is(e.target) // if the target of the click isn't the container
-	    	&& plot.has(e.target).length === 0 
-	    	&& button.has(e.target).length === 0
-	    	&& vizButton.has(e.target).length === 0) // nor a descendant of the container
-	    		
-	    		plot.css('fill', 'transparent');
-	    if(!dialog.is(e.target) && dialog.has(e.target).length===0) {
-	    	$('.close').click();
-	    	//tried to reset state of dialog box upon closing but this is quite hard.
-	    }
-	}); //end mouseup	
-
-	if(is_minor=='no' && qMatrix2D[0].length==json.K_max) {
-		var labels = d3.select('#visualization').append('svg')
+	if (K == json.K_max && !is_minor) {
+		var svglabelGroup = d3.select('#visualization')
+			.append("svg")
 			.attr('class', 'majorPopLabels')
-			.attr('width', svgWidth)
-			.attr('height', indivHeight+'px').append('g');
-		var labelsDim = addPopLabels(labels, 'no', K);
-		var labelsSVG = d3.select('#visualization').select('.majorPopLabels');
-		labelsSVG.attr('height', labelsDim[0]).attr('width', labelsDim[1]);
-	}
-	if(is_minor=='yes' && minorID==sortedMinorKeys[sortedMinorKeys.length-1]) {
-		var labels = d3.select('#modal_body_'+K).append('svg')
+			.attr("width", svgWidth+80)
+		var labelGroup = svglabelGroup.append('g')
+			.attr("class", "labelSVG")
+			.attr("transform", "translate("+(translate - border/2)+",0)");
+			
+		var labels = addPopLabels(labelGroup, false, K, tickVals);
+
+		svglabelGroup.attr('height', labelGroup.node().getBBox().height+80);
+
+	} else if (minorID && minorID == sortedMinorKeys.slice(-1)[0]) {
+		var svglabelGroup = d3.select('#modal_body_'+K)
+			.append('svg')
 			.attr('class', 'minorPopLabels_'+K)
-			.attr('width', svgWidth*0.75)
-			.attr('height', indivHeight+'px').append('g');
-		var labelsDim = addPopLabels(labels, 'yes', K);
+			.attr('height', svgHeight)
+			.attr('width', svgWidth);
+
+		var labelGroup = svglabelGroup.append('g')
+			.attr('class', "labelSVGminor_" + K)
+			.attr("transform", "translate("+(translate - border/2)+",0)");
+
+		var labels = addPopLabels(labelGroup, true, K, tickVals);
+
 		addModalFooter(K);
 	}
 
-	//creating print buttons for major modes; //for minor mode we probably need minorID
-	printbuttons(svg, K, currentPlot, is_minor, json.K_min); 
-	if(is_minor=='no') {
+	//creating print buttons for major modes; 
+	//for minor mode we probably need minorID
+	createbuttons(svg, K, currentPlot, is_minor, json.K_min, "print"); 
+	createbuttons(svg, K, currentPlot, is_minor, json.K_min, "download"); 
+	if(!is_minor) {
 		var myID = currentPlot.major_mode_runid;
 	}
-	if(is_minor=='yes') {
+	if(is_minor) {
 		var myID = svg[0][0].getAttribute('id').slice(4);
 	}
 	$('#'+myID+'_print').click(function(e) {
 	  e.preventDefault();
-	  saveSVG(currentPlot, is_minor, svg, myID).print(); //print this svg
+	  saveSVG(currentPlot, is_minor, svg, myID, "print"); //print this svg
 	});
-	
+
+	$('#'+myID+'_download_png').click(function(e) {
+	  e.preventDefault();
+	  saveSVG(currentPlot, is_minor, svg, myID, "png"); //download svg as png 
+	});
+
+	$('#'+myID+'_download_svg').click(function(e) {
+	  e.preventDefault();
+	  saveSVG(currentPlot, is_minor, svg, myID, "svg"); //download svg as svg 
+	});
+
 	//enabling all bootstrap tooltips (modal sim_threshold messaging)
 	$(document).ready(function(){
-  	  $('[data-toggle="tooltip"]').tooltip(); 
+  	  	$('[data-toggle="tooltip"]').tooltip();
 	});
 
 	queue--;
@@ -426,173 +367,227 @@ var generateVis = function(svg, K, qMatrix2D, is_minor, minorID, is_first, boolB
 
 } //end generateVis
 
+/********************  ALL HELPER FUNCTIONS GO HERE  ********************/
 
+// redraw upon zooming
+function draw() {
+	// don't allow panning beyond chart edges
+	if (xScale.domain()[0] < 0) {
+		var x = zoom.translate()[0] - xScale(0) + xScale.range()[0];
+		zoom.translate([x, 0]);
+	} else if (xScale.domain()[1] > xMax) {
+		var x = zoom.translate()[0] - xScale(xMax) + xScale.range()[1];
+		zoom.translate([x, 0]);
+	}
+	d3.selectAll("g.x.axis").call(xAxis);
+	var t = d3.event.translate[0],
+		s = d3.event.scale;
+	t = Math.min(0, Math.max(plotWidth * (1 - s), t));
 
-/*************************  ALL HELPER FUNCTIONS GO HERE  *************************/
+	d3.selectAll("path.area")
+		.attr("transform", "translate("+t+",0)scale("+s+", 1)");
+	//d3.selectAll("path.area").attr("d", area);
 
-var addPopLabels = function(labels, is_minor, K) {
-	var prevWidth = translate, currentWidth = translate, xval = translate; 
-	for(i in popNames) {
-		prevWidth = currentWidth;
-		currentWidth += popSizes[i]*indivWidth;
+	// label update
+	d3.selectAll(".popLabels").attr("transform", function(d) {
+			var transX = xScale(d) + labelLeftPad,
+				transY = labelDistFromPlot,
+				rotate = labelRotate;
+			return "translate("+transX+","+transY+")rotate("+rotate+")"; 
+		})
+		.style("fill", function(d) {
+			if (xScale(d)+labelLeftPad<0 || xScale(d)+labelLeftPad>plotWidth) {
+				return "none";
+			} else return "black";
+		});
+}
 
-		var labelx = prevWidth + 0.5*(currentWidth-prevWidth) - 0.5*labelFontSize; // the last term is only if the labels are rotated 90 degrees
-				var labely = labelDistFromPlot;
-				var labeltransform = 'translate('+labelx+','+labely+')rotate('+labelRotate+')';
-				
-				//unique pop id for selection
-				if(is_minor=='yes') popid = "minor_"+K+"_pop"+i;
-				else popid = "major_pop"+i; 
+var addPopLabels = function(labelGroup, is_minor, K, data) {
+	// unique pop id for selection
+	if (is_minor) popid = "minor_" + K + "_pop" + i;
+	else popid = "major_pop" + i; 
 
-				var pop = labels.append("text").text(popNames[i])
-								.attr('class','x-axis')
-								.attr('transform',labeltransform)
-								.style('font-size','12px')
-								.style('font-family','Helvetica, sans-serif')
-								.attr('id', popid);
-	} //end for
-	if(is_minor=='no') return(getLabelDim("major_pop", "majorPopLabels"));
-} //end addPopLabels
+	var labels = labelGroup.selectAll(".popLabels")
+		.data(data)
+		.enter()
+		.append("text")
+		.style("font-family", "Helvetica")
+		.text(function(d,i) { return popNames[i]; })
+		.attr("transform", function(d) {
+			var transX = xScale(d) + labelLeftPad,
+				transY = labelDistFromPlot,
+				rotate = labelRotate;
+			return "translate("+transX+","+transY+")rotate("+rotate+")"; 
+		})
+		.attr("class", "popLabels noSelect")
+		.attr("id", function(d,i) { return "major_pop" + i; })
+		.on("click", function(d, i) {
+			if (d3.event.shiftKey && popClick) {
+				var pops = d3.selectAll("path.area.population" + i);
+				if (pops.attr("fill-opacity") == 1) pops.attr("fill-opacity", 0.2);
+				else pops.attr("fill-opacity", 1);
+			} else {
+				d3.selectAll("path.area").attr("fill-opacity", function(thatDat) {
+					var localColors = json.qmatrices[thatDat.K-json.K_min].color_perm;
+					if (!popClick) {
+						if (thatDat.population_index != i) {
+							return 0.2;
+						} else {
+							return 1;
+						}
+					} else {
+						return 1;
+					}
+				});
+				popClick = !popClick;
+			}
+		});
+	return labels;
+}
 
-//updating svg dim
+// updating svg dim
 var getLabelDim = function(handle, label){
 	labelsvg = d3.select('.'+label).select('g').node();
- 	return [labelsvg.getBBox().height+15, labelsvg.getBBox().width+labelsvg.getBBox().x+15]
-} //end getLabelDim
+ 	return [labelsvg.getBBox().height+15, 
+ 		labelsvg.getBBox().width+labelsvg.getBBox().x+15];
+}
 
 var buttons = function(K, sortedMinorKeys) {
 	var buttonDiv = d3.select('body').append('div').attr('class', 'buttonDiv');
 	var button = buttonDiv
 		.append("button")
-        .attr("class","modes btn btn-info btn-lg")
-        .attr('data-toggle', 'modal')
-        .attr('data-target', '#modal-'+K.toString()) //myModal
+		.attr("class", "modes btn btn-info btn-lg")
+		.attr('data-toggle', 'modal')
+		.attr('data-target', '#modal-'+K)
 		.attr("id", 'button-'+K);
 
 	button.style('position', 'absolute')
-			.style('top', 129+(svgHeight+20)*(K-json.K_min)+98 + 'px') //this is fixed; be done in a more symbolic way
-			.style('left', (translate + svgWidth*0.84 + 20).toString() + 'px'); //previously (svgWidth-35).toString() + 'px');
+		.style('top', 129+(svgHeight+20) * (K-json.K_min)+98 + 'px') 
+		.style('left', (translate + svgWidth*0.84 + 20) + 'px');
 
+	button.html('<i class="fa fa-plus"></i> <span style="font-weight:bold;' + 
+		' font-size:125%;">'+ sortedMinorKeys.length+'</span>');
 
-	button.html('<i class="fa fa-plus"></i> <span style="font-weight:bold; font-size:125%;">'+sortedMinorKeys.length+'</span>');
-
-
-	modal(K, sortedMinorKeys, button, buttonDiv, false);
+	modal(K, sortedMinorKeys, button, buttonDiv);
 }
 
-var modal = function(K, sortedMinorKeys, button, buttonDiv, viz) {
+var modal = function(K, sortedMinorKeys, button, buttonDiv) {
 	var modal_fade = buttonDiv.append('div')
-								.attr('class', 'modal fade')
-								.attr('id', function() {
-									if(viz==false) return 'modal-'+K;
-									else return 'modal-viz';
-									})
-								.attr('role', 'dialog');
+		.attr('class', 'modal fade')
+		.attr('id', 'modal-'+K)
+		.attr('role', 'dialog');
 
 	var modal_dialog = modal_fade.append('div')
-						.attr('class', 'modal-dialog');
+		.attr('class', 'modal-dialog');
 
 	var modal_content = modal_dialog.append('div')
-						.attr('class', 'modal-content')
-						.attr('id', 'modal-content-'+K)
-						.style('width', (svgWidth*.75+80).toString()+'px') //wide so as not to cover the major mode label
-						.style('left', (xStart+10).toString()+'px');
+		.attr('class', 'modal-content')
+		.attr('id', 'modal-content-'+K)
+		.style('width', (svgWidth + 45)+'px') 
+		//wide so as not to cover the major mode label
+		.style('left', (xStart+10) +'px');
 
 	var modal_header = modal_content.append('div')
-			.attr('class', 'modal-header')
-			.attr('id', function() {
-				if(viz==false) return 'title'+K;
-				else return 'titleViz';
-			});
+		.attr('class', 'modal-header')
+		.attr('id', 'title'+K);
+
 	var close = modal_header.append('button')
-											.attr('type', 'button')
-											.attr('class', 'close')
-											.attr('data-dismiss', 'modal')
-											.text('x');
+		.attr('type', 'button')
+		.attr('class', 'close')
+		.attr('data-dismiss', 'modal')
+		.html("<span>&times;</span>");
 
 	var title = modal_header.append('h2')
-		.attr('class', function() {
-			if(viz==false) return'modal-title';
-			else return 'modal-title-viz';
-		})
-		.html(function() {
-			if(viz==false) return 'Clustering modes, K=' + K;
-		});
+		.attr('class', 'modal-title')
+		.html('Clustering modes, K=' + K);
 
 	minor_svg = new Array();
 
-	if(viz==false) {
-		var modal_header2 = modal_content.append('div')
-			.attr('class', 'modal-header')
-			.attr('id', 'modal_header2_'+K);
-
-		dirtyGray = 0; //dirty bit to figure out if gray indices exist
-		for (i=0; i<sortedMinorKeys.length; i++) {
-		    var minorID = sortedMinorKeys[i];
-		    minor_obj = json.qmatrices[K-json.K_min].modes[minorID];
-		    if(minor_obj.gray_indices.length!=0) {
-		    	dirtyGray = 1;
-		    	break;
-		    } 
+	var colorPerm = json.qmatrices[K-json.K_min].color_perm;
+	
+	$('#modal-' + K).on('hide.bs.modal', function (e) {
+		if (grayClick) {
+			for (i in sortedMinorKeys) {
+				grayOutSim(K, sortedMinorKeys[i], colorPerm, indivWidth);
+			}
+			grayClick = false;
+			$('#whiteout' + K).attr('checked', false);
 		}
-		if(dirtyGray) { //enable multimodality highlighting
-			var checkbox = modal_header2.append('label').attr('class', 'checkbox-inline');
-			checkbox.append('input').attr('type', 'checkbox')
-									.attr('class', 'check-input')
-									.attr('id', 'whiteout'+K);	
-			checkbox.style('position', 'relative').style('top', '4px');
+	})
 
-			var checkbox_caption = modal_header2.append('text')
-				.attr('class', 'checkbox-caption')
-				.text('\nCheck to highlight multimodality: ');
-		}
-		else { //if no clusters can be greyed out in minor modes, give a proper error message
-			if(sortedMinorKeys.length==1) mymodestr = "minor mode"; //making the error message case appropriate
-			else mymodestr = "minor modes";
-			//messaging is achieved with bootstrap danger button and a bootstrap tooltip
-			modal_header2.append('button').attr('type', 'submit')
-							.attr('class', 'btn btn-danger btn-small pull-right')
-							.attr('id', 'highlightMM_'+K)
-							.attr('data-toggle', 'tooltip')
-							.attr('data-placement', 'left')
-							.attr('title', 'Similarity between corresponding clusters in the major mode and '+mymodestr+' is less than the similarity threshold of '+json.sim_threshold+'. Lower the similarity threshold in pong\'s command line to enable highlighting.')
-							.text('Why can\'t I highlight multimodality?')
-		}
+	var modal_header2 = modal_content.append('div')
+		.attr('class', 'modal-header')
+		.attr('id', 'modal_header2_'+K);
 
-		//pushing weird major plot:
-		var majorID = json.qmatrices[K-json.K_min].major_mode_runid;
-		plot = d3.select('#modal_header2_'+K).append('svg')
-				.attr("width", svgWidth*0.75)
-				.attr("height", svgHeight*0.95)
-				.attr("class", "minorSVG-"+K) //class allows the printing of all plots later on
-				.attr("id", "plot"+majorID+'_minor');
-		minor_svg.push(plot);
-		//this major mode acts like minor because it is in the dialog box:
-		getQmatrix(majorID, 'yes', majorID, 'yes'); 		
-	} //end viz false
+	dirtyGray = 0; // dirty bit to figure out if gray indices exist
+	for (i = 0; i < sortedMinorKeys.length; i++) {
+		var minorID = sortedMinorKeys[i];
+		minor_obj = json.qmatrices[K-json.K_min].modes[minorID];
+		if(minor_obj.gray_indices.length != 0) {
+			dirtyGray = 1;
+			break;
+		} 
+	}
+	if (dirtyGray) { // enable multimodality highlighting
+		var checkbox = modal_header2.append('label')
+			.attr('class', 'checkbox-inline');
+		checkbox.append('input').attr('type', 'checkbox')
+			.attr('class', 'check-input')
+			.attr('id', 'whiteout'+K);	
+		checkbox.style('position', 'relative').style('top', '4px');
+
+		var checkbox_caption = modal_header2.append('label')
+			.attr('class', 'checkbox-caption noSelect')
+			.attr("for", "whiteout"+K)
+			.text('\nCheck to highlight multimodality: ');
+	} else { // if no minor mode cluster can be grayed out, give error message
+		// making the error message case appropriate
+		if (sortedMinorKeys.length == 1) mymodestr = "minor mode";
+		else mymodestr = "minor modes";
+		// messaging is achieved with bootstrap danger button and tooltip
+		modal_header2.append('button').attr('type', 'submit')
+			.attr('class', 'btn btn-danger btn-small pull-right')
+			.attr('id', 'highlightMM_'+K)
+			.attr('data-toggle', 'tooltip')
+			.attr('data-placement', 'left')
+			.attr('title', 'Similarity between corresponding' +
+				' clusters in the major mode and ' + mymodestr +
+				' is less than the similarity threshold of ' + 
+				json.sim_threshold + '. Lower the similarity' +
+				' threshold in pong\'s command line to enable highlighting.')
+			.text('Why can\'t I highlight multimodality?')
+	}
+
+	// pushing weird major plot:
+	var majorID = json.qmatrices[K-json.K_min].major_mode_runid;
+	plot = d3.select('#modal_header2_'+K).append('svg')
+		.attr("width", svgWidth)//*0.75)
+		.attr("height", svgHeight+15)//*0.95)
+		//class allows the printing of all plots later on
+		.attr("class", "minorSVG-"+K + " first") 
+		.attr("id", "plot"+majorID+'_minor');
+	minor_svg.push(plot);
+	//this major mode acts like minor because it is in the dialog box:
+	getQmatrix(majorID, 'yes', majorID, 'yes'); 		
 
 	//both viz true and false:
-		var modal_body = modal_content.append('div')
-			.attr('class', 'modal-body')
-			.attr('id', function() {
-				if(viz==false) return 'modal_body_'+K;
-				else return 'modal_body_viz';
-		})
+	var modal_body = modal_content.append('div')
+		.attr('class', 'modal-body')
+		.attr('id', 'modal_body_'+K);
 
-	if(viz==false) {	
-		//gets qmatrix for each minor plot
-		for (i=0; i<sortedMinorKeys.length; i++) {
-			var minorID = sortedMinorKeys[i];
-			plot = d3.select('#modal_body_'+K).append('svg')
-					.attr("width", svgWidth*0.75)
-					.attr("height", svgHeight*0.95)
-					.attr("class", "minorSVG-"+K) //added in order to print all plots later on
-					.attr("id", "plot"+minorID+'_minor');
-			minor_svg.push(plot);
-			getQmatrix(minorID, 'yes', minorID, 'no');
-		} //end for
-	} //viz false
-} //end modal
+	//gets qmatrix for each minor plot
+	for (i = 0; i < sortedMinorKeys.length; i++) {
+		var minorID = sortedMinorKeys[i];
+		plot = d3.select('#modal_body_'+K).append('svg')
+			.attr("width", svgWidth)
+			.attr("height", svgHeight+15)
+			//added in order to print all plots later on
+			.attr("class", "minorSVG-"+K) 
+			.attr("id", "plot"+minorID+'_minor');
+		minor_svg.push(plot);
+		getQmatrix(minorID, 'yes', minorID, 'no');
+	}
+} // end modal
 
 var printLabels = function(svg, K, currentPlot) { 
 	var totRuns = currentPlot.total_runs;
@@ -601,11 +596,14 @@ var printLabels = function(svg, K, currentPlot) {
 	var yPos = 0.5*plotHeight+ 0.5*labelFontSize;
 
 	//K labels to the left of the plot
-	label = svg.append("text").text("K = "+K.toString()); //K label on left
-	label.attr("class","label").style('font', 'bold 20px Helvetica, sans-serif');
+	label = svg.append("text").text("K = "+K); //K label on left
+	label.attr("class","label")
+		.style('font', 'bold 20px Helvetica, sans-serif');
 	label.attr("x",0).attr("y", yPos);
 	//major runs out of total runs under K label
-	runs = svg.append('text').text(numMajorRuns+'/'+totRuns+' runs').attr('id', 'major_bigstring');
+	runs = svg.append('text')
+		.text(numMajorRuns+'/'+totRuns+' runs')
+		.attr('id', 'major_bigstring');
 	runs.attr("x",0).attr("y", yPos+25);
 	runs.style('font', '12px Helvetica, sans-serif');
 
@@ -617,28 +615,31 @@ var printLabels = function(svg, K, currentPlot) {
 	avg_sim = currentPlot.modes[majorID].avg_sim;
 	if(avg_sim!=null) {
 		sim = svg.append('text')
-			.text('Avg pairwise similarity: '+avg_sim.toString().substring(0,5));
-		sim.attr('x', translate).attr('y', 10);
+			.text('Avg. pairwise similarity: '+
+				avg_sim.toString().substring(0,5));
+		sim.attr('x', translate)
+			.attr('y', 9); // fits it right in the space beteen svg top and chart
 		sim.style('fill', 'rgb(70, 184, 218)'); //blue plus button color
-		sim.style('font', 'bold 12px Helvetica, sans-serif');
+		sim.style('font', 'bold 11px Helvetica, sans-serif');
 	}
-} //end printLabels
+}
 
 var printMinorLabels = function(svg, currentPlot, minorID, is_first) {
 	var totRuns = currentPlot.total_runs;
 	var numMinorRuns = currentPlot.modes[minorID].runs_represented.length;
 	var yPos = 0.5*plotHeight*0.85 + 0.5*labelFontSize;
 	//labels to the left
-	if(is_first=='yes') 
-	{
+	if (is_first == 'yes') {
 		major = svg.append('text').text('major mode');
 		major.attr('class', 'majorMinorLabel')
-			 .attr('id', 'minor_bigstring');
-		major.attr('x',0).attr('y', yPos-38-15); //x location to 0 to left align mode text
+			.attr('id', 'minor_bigstring');
+		// x location to 0 to left align mode text
+		major.attr('x',0).attr('y', yPos-38-15); 
 		major.style('font', 'bold 14px Helvetica, sans-serif')
 	}
 
-	if(83.609 > translate) translate = 83.609 + 5; //78.609 is width of label "major mode" - used this fixed value here
+	if (83.609 > translate) translate = 83.609 + 5; 
+	//78.609 is width of label "major mode" - used this fixed value here
 
 	label = svg.append('text').text(minorID);
 	label.attr("class","label");
@@ -657,7 +658,8 @@ var printMinorLabels = function(svg, currentPlot, minorID, is_first) {
 	avg_sim = currentPlot.modes[minorID].avg_sim;
 	if(avg_sim!=null) {
 		sim = svg.append('text')
-			.text('Avg pairwise similarity:' + avg_sim.toString().substring(0,5));
+			.text('Avg pairwise similarity:' + 
+				avg_sim.toString().substring(0,5));
 		sim.attr('class', 'avg_sim');
 		sim.attr('x', translate).attr('y', 10);
 		sim.style('fill', 'rgb(70, 184, 218)'); //blue plus button color
@@ -668,351 +670,552 @@ var printMinorLabels = function(svg, currentPlot, minorID, is_first) {
 
 var sortKeyList = function(currentPlot, keyList) {
 	var minorDict = {};
-	for(var i in keyList) {
+	for (var i in keyList) {
 		var current_minor = keyList[i];
-		var current_minor_runs = currentPlot.modes[current_minor].runs_represented.length;
+		var current_minor_runs = currentPlot.modes[current_minor]
+			.runs_represented.length;
 		minorDict[current_minor] = current_minor_runs;
 	}
-	var items = Object.keys(minorDict).map(function(key) { //put in array format
+	var items = Object.keys(minorDict).map(function(key) { 
+		// put in array format
 		return [key, minorDict[key]];
 	});	
 	// Sort the array based on the second element
 	items.sort(function(first, second) { return second[1] - first[1]; });
 	var sortedMinorKeys = new Array();
-	for(var i in items) {sortedMinorKeys.push(items[i][0])}
+	for (var i in items) {sortedMinorKeys.push(items[i][0])}
 	return sortedMinorKeys;
 }
-//greys out clusters for one minor plot
-var greyOutSim = function(K, minorID, colorPerm, indivWidth, boolBarchart) { 
-		//greying out minor clusters that are different from the major modes
-		var minor_obj = json.qmatrices[K-json.K_min].modes[minorID];
-		if(minor_obj.gray_indices!=null) {
-			var gray_indices = minor_obj.gray_indices;
 
-			for(i in minor_obj.gray_indices) {
-				var greyOutIndex = colorPerm[gray_indices[i]];
-				var cluster_to_grey = '.'+minorID+'_minorCluster'+(greyOutIndex).toString();
-				//greys out one color at a time if visible, pops back up if hidden (oncheck)
-				var footerButton = d3.select('#modal_body_' + K).select('.downloadModalPDF');
-				if(boolBarchart) {
-					if(d3.selectAll(cluster_to_grey).style('visibility')=='visible') { //if DISTRUCT rectangles are used
-					 	d3.selectAll(cluster_to_grey).style('visibility', 'hidden')
-					 	footerButton.classed('btn btn-primary', true).text("Print highlighting multimodality at K="+K);
-					}
-					else {
-						d3.selectAll(cluster_to_grey).style('visibility', 'visible'); //if DISTRUCT rectangles are used
-						footerButton.classed('btn-primary', false).text("Print all modes at K="+K);
-					}
-				}
-				else {
-					if(d3.selectAll(cluster_to_grey).attr('fill')!='white') {
-						d3.selectAll(cluster_to_grey).attr('fill', 'white').attr('stroke', 'white')
-						footerButton.classed('btn btn-primary', true).text("Print highlighting multimodality at K="+K);
-					}
-					else {
-						d3.selectAll(cluster_to_grey).attr('fill', colors[colorPerm[gray_indices[i]]]).attr('stroke', colors[colorPerm[gray_indices[i]]])
-						footerButton.classed('btn-primary', false).text("Print all modes at K="+K);
-					}
-				}
-			} //end for
-		} //end if
+// grays out clusters for one minor plot
+var grayOutSim = function(K, minorID, colorPerm, indivWidth) {
+	// graying out minor clusters that are different from the major modes
+	var minor_obj = json.qmatrices[K-json.K_min].modes[minorID];
+	if (minor_obj.gray_indices != null) {
+		var gray_indices = minor_obj.gray_indices;
+
+		for (i in minor_obj.gray_indices) {
+			var grayOutIndex = colorPerm[gray_indices[i]];
+			var cluster_to_gray = '.'+minorID+'_minorCluster'+grayOutIndex;
+			// grays out one color at a time if visible
+			// pops back up if hidden (oncheck)
+			var footerButtonPrint = d3.select('#modal_body_' + K)
+				.select('.printModal');
+			var footerButtonDownload = d3.select('#modal_body_' + K)
+				.select('.modalDropdown a div');
+
+			if (d3.selectAll(cluster_to_gray).style('fill')
+				!='rgb(255, 255, 255)') {
+				d3.selectAll(cluster_to_gray)
+					.style('fill', 'white');
+				footerButtonPrint.classed('btn btn-primary', true)
+					.text("Print highlighting multimodality at K="+K);
+				footerButtonDownload.classed('btn btn-primary', true)
+					.text("Download highlighting multimodality at K="+K);
+			} else {
+				d3.selectAll(cluster_to_gray)
+					.style('fill', colors[colorPerm[gray_indices[i]]]);
+				footerButtonPrint.classed('btn-primary', false)
+					.text("Print all modes at K="+K);
+				footerButtonDownload.classed('btn-primary', false)
+					.text("Download all modes at K="+K);
+			}
+		} //end for
+	} //end if
 }
 
 var similarity = function(svg, K) {
 	//adds average similarity between modes in dialog header
-	var avg_sim_bt_modes = Math.round(json.qmatrices[K-json.K_min].avg_sim_bt_modes*1000)/1000;
+	var score = json.qmatrices[K-json.K_min].avg_sim_bt_modes
+	var avg_sim_bt_modes = Math.round(score*1000)/1000;
 	if(avg_sim_bt_modes!=null)
 		simMode = d3.select('#title'+K).append('h4')
-					.text('\nAvg pairwise similarity among modes = '+avg_sim_bt_modes);
-} //end similarity
+					.text('\nAvg pairwise similarity among modes = '+
+						avg_sim_bt_modes);
+}
 
-//MOUSEOVER TIP
+// tooltip
 var tip = d3.tip()
-	.direction('s') //put southward tooltip underneath svg
+	.direction('s') // put southward tooltip underneath svg
 	.attr('class', 'd3-tip')
- 	.offset(function(d, i) {
- 		var t = d3.transform(d3.select(this.parentNode.parentNode.parentNode).attr('transform'))
- 		return [t.translate[1],0]
- 	})  
-	.html(function(d,i) { 
-	//d is array of percentages for each population in order of color_perm
-	    var K = d.length;
-	    var colorIndices = json.qmatrices[K-json.K_min].color_perm;
-
-
-	    var body = '<div class="text-center"><strong>'+popNames[i]+'</strong><br>'
-	    +popSizes[i]+' samples</div><br>';
-
-	    body += '<div><ul>';
-
-	    var swatch = []; //make combined list of cluster membership and colors for tip swatches
-	    for (var j=0; j<K; j++) swatch.push({'datum': d[j], 'color': colors[colorIndices[j]]});
-	    swatch.sort(function(a, b) {
-	    	return((a.datum > b.datum) ? -1 : ((a.datum == b.datum) ? 0 : 1));
-	    });
-
-	    swatch.forEach(function(cluster, i) {
-	    	var datum = Math.round(cluster.datum*1000)/10;
-	    	var color = cluster.color; //colors[colorIndices[i]];
-
-	    	if(datum >= 0.5) {
-	    		//color swatch:
-	    		body += '<i class="fa fa-circle" style="color: '+color+' "></i>';
-	    		body += '&nbsp;<strong> '+datum+'%</strong></li><br>';
-
-	    	}
-	    }); //end forEach
-	    body += '</ul></div>';
-
-	    return body;
-	}); //end html
-
-
-var minorTip = d3.tip()
-	.direction('e')
-	.attr('class', 'd3-minorTip')
-	.offset(function(d,i) {
-		var k = d.length;
-		var width = d3.select('#modal-content-'+k).style('width');
-		var modalWidth = width.substring(0, width.length-2);
-		
-		var tipX = this.getBBox().x;
-		var tipWidth = this.getBBox().width;
-		
-		var toolX = tipX+tipWidth;
-		var spaceLeft = modalWidth-toolX;
-
-		return [0, spaceLeft-30]; //+30
-
-	})
-	.html(function(d,i) { 
-	//d is array of percentages for each population in order of color_perm
-	    var K = d.length;
-	    var colorIndices = json.qmatrices[K-json.K_min].color_perm;
-
-	    var body = '<div class="text-center"><strong>'+popNames[i]+'</strong><br>'
-	    +popSizes[i]+' samples</div><br>';
-
-	    body += '<div><ul>';
-
-	    var swatch = []; //make combined list of cluster membership and colors for tip swatches
-	    for (var j=0; j<K; j++) swatch.push({'datum': d[j], 'color': colors[colorIndices[j]]});
-	    swatch.sort(function(a, b) {
-	    	return((a.datum > b.datum) ? -1 : ((a.datum == b.datum) ? 0 : 1));
-	    });
-
-	    //d = d.sort().reverse()
-	    swatch.forEach(function(cluster, i) {
-	    	var datum = Math.round(cluster.datum*1000)/10;
-	    	var color = cluster.color; //colors[colorIndices[i]];
-
-	    	if(datum >= 0.5) {
-	    		//color swatch:
-	    		body += '<i class="fa fa-circle" style="color: '+color+' "></i>';
-	    		body += '&nbsp;<strong> '+datum+'%</strong></li><br>';
-
-	    	}
-	    }); //end forEach
-	    body += '</ul></div>';
-
-	    return body;
-	}); //end html
-
-
-var saveFig = function(plotID, allMajorModes) {
-	// if allMajorModes is true, plotID is ignored (it can just be an empty string)
-	var name = plotID;
-
-	var serializer = new XMLSerializer();
-
-	if (allMajorModes) {
-		name = 'all';
-		var source = "<svg>";
-		for (var i=0; i<json.qmatrices.length; i++) {
-			source += serializer.serializeToString(document.getElementById("plotSVG_"+json.qmatrices[i].major_mode_runid));
+	.offset([10,0])
+	.html(function(d) {
+		var K = d.K;
+		var colorIndices = json.qmatrices[K-json.K_min].color_perm;
+		var body = '<div class="text-center text-tip"><strong>' + 
+			popNames[d.population_index] + '</strong><br>' + 
+			popSizes[d.population_index] +' samples</div><br>';
+		body += '<div><ul>';
+		// make combined list of cluster membership and colors for tip swatches
+		var swatch = []; 
+		for (var j = 0; j < K; j++) {
+			swatch.push({'datum': d.indiv_avg[j], 'color': colors[colorIndices[j]]});
 		}
-		source += "</svg>"
-	}
-	else {
-		var datSVG = document.getElementById("plotSVG_"+name); // get SVG element
-		var source = serializer.serializeToString(datSVG); // get svg source
-	}
-	
-	socket.send(JSON.stringify({ 'type':'svg', 'svg':source, 'name':name}));
-}
+		swatch.sort(function(a, b) {
+			return((a.datum > b.datum) ? -1 : ((a.datum == b.datum) ? 0 : 1));
+		});
 
-var saveAll = function() {
-	var serializer = new XMLSerializer();
-	var allSVGs = document.getElementsByClassName('plotSVG');
-	var svgdict = new Object();
+		swatch.forEach(function(cluster, i) {
+			var datum = Math.round(cluster.datum*1000)/10;
+			var color = cluster.color; //colors[colorIndices[i]];
 
-	for (var i=0; i<allSVGs.length; i++) {
-		svgdict[allSVGs[i].id] = serializer.serializeToString(allSVGs[i]); 
-	}
+			if(datum >= 0.5) {
+				// color swatch:
+				body += '<i class="fa fa-circle" style="color: '+
+					color+' "></i>';
+				body += '&nbsp;<strong> '+datum+'%</strong></li><br>';
+			}
+		}); // end forEach
+		body += '</ul></div>';
 
-	socket.send(JSON.stringify({ 'type':'multi-svg', 'svg-dict':svgdict }));
-}
+		return body;
+	}); //end html
 
-//downloading PDF of default visualization
-$(document).on('click','#downloadPDF', function(){
-	saveAllChild('no').print();
+// print all plots of default visualization
+$(document).on('click','#printAllPlots', function(){
+	saveAllChild('no', 'print');
 });
 
-//downloading PDF of a modal
-$(document).on('click', '.downloadModalPDF', function() {
-	K = $(this)[0].id;
-	saveAllChild(K).print();
+// print plots in a modal
+$(document).on('click', '.printModal', function() {
+	var K = $(this)[0].id;
+	saveAllChild(K, 'print');
 });
 
-//////////////////////////
-////////Printing functions
+//download all plots of default visualization as png
+$(document).on('click','#main_png', function(){
+	saveAllChild('no', 'png');
+});
+
+//download all plots of default visualization as svg
+$(document).on('click','#main_svg', function(){
+	saveAllChild('no', 'svg');
+});
+
+//download all plots of modal visualization as png
+$(document).on('click','.downloadModalPNG', function(){
+	var K = $(this)[0].id;
+	saveAllChild(K, 'png');
+});
+
+//download all plots of modal visualization as svg
+$(document).on('click','.downloadModalSVG', function(){
+	var K = $(this)[0].id;
+	saveAllChild(K, 'svg');
+});
+
+/* ======================== PRINTING & DOWNLOADING ========================= */
 
 //adding a button to print all barplots in a dialog
 var addModalFooter = function(K) {
 	var myreply = "reply_Modal(this)";
-	var footer = d3.select('#modal_body_'+K).append('div').attr('class', 'modal-body');
-	var footer_download = footer.append('div').attr('class', 'row')
-							.append('div').attr('class', 'text-center')
-							.append('button').attr('type', 'submit')
-							.attr('class', 'btn btn-default downloadModalPDF')
-							.attr('id', K)
-							.text('Print all modes at K='+K);
+	var footer = d3.select('#modal_body_'+K)
+		.append('div').attr('class', 'modal-body')
+		.append('div').attr('class', 'row')
+		.append('div').attr('class', 'text-center');
+	var footer_print = footer.append('button').attr('type', 'submit')
+		.attr('class', 'btn btn-default printModal').attr('id', K)
+		.text('Print all modes at K='+K);
+
+	var footer_download = footer.append('div')
+		.attr('class', 'dropdown dropdown-toggle modalDropdown');
+	var icon = footer_download.append('a')
+		.attr('class', 'dropdown')
+		.attr('data-toggle', 'dropdown')
+		.attr('aria-expanded',"false").append('div')
+		.attr('class', 'btn btn-default').text('Download all modes at K='+K);
+	addDropdownMenu(footer_download, K, icon, true);
 } //end addModalFooter
 
-//create and position for print button glyph
-var printbuttons = function(svg, K, currentPlot, is_minor, K_min) { 	
-	if(is_minor=='no') {
-		var pbDiv = d3.select('body').append('div').attr('class', 'pbDiv');
-		var myID = currentPlot.major_mode_runid + "_print";
+var addDropdownMenu = function(footer_download, myID, icon, multiPlot_minor) {
+	var download_ul = footer_download.append('ul')
+		.attr('class', 'dropdown-menu download-menu')
+		.attr('id', myID+"_dropdown");
+
+	var slider = download_ul.append('div')
+		.attr('class','slider')
+		.style('margin','10px')
+		.style('margin-left', '15px')
+		.style('margin-right', '15px')
+		.style('font-size', '12px')
+		.attr('id', 'slider_div_' + myID);
+	slider.append('div').attr('class', 'img_slider').text("Image size");
+	slider.append('div').attr('id','slider_' + myID);
+
+	slider.on('click', function() {
+	   	d3.event.stopPropagation();
+	   	d3.event.preventDefault();
+	});
+
+	var slider_axis = slider.append('div')
+		.attr('class', 'slider_axis')
+		.style('display', 'flex')
+		.style('justify-content', 'space-between')
+		.style('width','100%')
+		.style('font-size', '9px');
+	slider_axis.append('div').text("Smaller");
+	slider_axis.append('div').text("Larger");
+
+	var pngButton = download_ul.append('li')
+		.append('a').attr('data-format', 'png')
+		.attr('title', 'Download plot as PNG')
+		.text("PNG");
+	var svgButton = download_ul.append('li')
+		.append('a').attr('data-format', 'svg')
+		.attr('title', 'Download plot as SVG')
+		.text("SVG");
+
+	if (multiPlot_minor){
+		pngButton.attr('class', 'downloadModalPNG').attr('id', myID);
+		svgButton.attr('class', 'downloadModalSVG').attr('id', myID);
+	} else {
+		pngButton.attr('id', myID + "_png");
+		svgButton.attr('id', myID + "_svg");
 	}
-	if(is_minor=='yes') { //minor_index = the "index" of this plot, out of all the plots in modal
-		var pbDiv = d3.select('#modal_body_'+K).append('div').attr('class', 'pbDiv');
-		var myID = svg[0][0].getAttribute('id').slice(4) + "_print";
+
+		//generate alert about downloading in browsers that do not support it
+	if (!Modernizr.adownload){
+		icon.attr('data-toggle', 'tooltip')
+			.attr('data-placement', 'top')
+			.attr('title', 'Download not fully supported in this browser.' +
+				" Please save the following page after selecting a file " +
+				"type to download locally.");
+		svgButton.append('tspan')
+		.text(" (Save with format 'Page Source')")
+		.style('font-size', '10px');
+	}
+
+	$("#slider_" + myID).slider({ value: 2, min: 1, max: 3, step: 0.5});
+}
+
+//create and position for print button glyph
+var createbuttons = function(svg, K, currentPlot, is_minor, K_min, type) {
+	if(!is_minor) {
+		var pbDiv = d3.select('body').append('div').attr('class', 'pbDiv');
+		var myID = currentPlot.major_mode_runid + "_" + type;
+	}
+	if(is_minor) { 
+		// minor_index = the "index" of this plot, out of all the plots in modal
+		var pbDiv = d3.select('#modal_body_'+K)
+			.append('div')
+			.attr('class', 'pbDiv');
+		var myID = svg[0][0].getAttribute('id').slice(4) + "_" + type;
 		var runID = (svg[0][0].getAttribute('id').slice(4))
-					.slice(0,svg[0][0].getAttribute('id').slice(4).indexOf("_minor"));
+					.slice(0,svg[0][0].getAttribute('id')
+						.slice(4)
+						.indexOf("_minor"));
 		var keyList = Object.keys(currentPlot.modes);
 		var sortedMinorKeys = sortKeyList(currentPlot, keyList);
-		var minor_index = sortedMinorKeys.indexOf(runID); //0 for major mode rep run
+		// 0 for major mode rep run
+		var minor_index = sortedMinorKeys.indexOf(runID);
 	}
 
-	//add print button in a div
-	var print = pbDiv.append('a').attr('id', myID)
-		.append('span').attr('class', 'glyphicon glyphicon-print');
-	if(is_minor=='no') {
-		print.attr('id', "print-major-"+K);
-	}
-	if(is_minor=='yes') {
-		print.attr('id', "print-minor-"+runID);
+	// add print button in a div
+	if (type=="print") {
+		var icon = pbDiv.append('a').attr('id', myID)
+			.append('span').attr('class', 'glyphicon glyphicon-print');
+	} else if (type=="download"){
+		var icon = pbDiv.attr("class", "dropdown")
+			.append('a').attr('id', myID)
+			.attr('data-toggle', 'dropdown')
+			.attr('class', 'dropdown-toggle')
+			.attr('aria-expanded', 'false')
+			.attr('aria-hadpopup', 'true')
+			.append('span').attr('class', 'glyphicon glyphicon-download-alt');
+
+		addDropdownMenu(pbDiv,myID, icon, false);
+
 	}
 
+	//figure out where in the K values this plot is
+	var left = "40px";
+	if (type=="download"){
+		var left = "62px";
+	} 
 	//give title to print button on mouseover, and set position
-	if(is_minor=='no') {
-		//figure out where in the K values this plot is
+	if(!is_minor) {
+		if (type != "download") icon.attr('title', type + " K=" + K + " barplot");
 
-		print.attr('title', "Print K=" + K + " barplot");
+		icon.attr('id', type + "-major-"+K);
 		pbDiv.style('position', 'absolute')
-			.style('top', svgHeight*1.131*(K-K_min+1)+85 + 'px')
-			.style('left', 48 + 'px'); 
+			.style('top', (svgHeight*1.125)*(K-K_min+1)+90 + 'px')
+			.style('left', left); 
 	}
-	if(is_minor=='yes') {
-		print.attr('title', "Print " + runID + " barplot"); 
+	if(is_minor) {
+		if (type != "download") icon.attr('title', type + " " + runID + " barplot");
+		
+		icon.attr('id', type + "-minor-"+runID);
 		pbDiv.style('position', 'absolute')
-			.style('left', '48px'); 
+			.style('left', left); 
+
 
 		if(minor_index==0) { //the major mode rep run
-			pbDiv.style('top', svgHeight*0.95*(-1) + 108.8 -15 + 'px');
+			pbDiv.style('top', svgHeight*0.5*(-1) + 'px');
 		}
 		else {
-			pbDiv.style('top', (svgHeight*0.95+5)*minor_index + 5 -30 + 'px');
+			pbDiv.style('top', ((svgHeight*1.125)*(minor_index-1))+130 + 'px');
 		}
 	}
-} //end printbuttons
 
-//save an SVG, needs functionality for if it is a minor mode (getting pop and side labels)
-var saveSVG = function(currentPlot, is_minor, svg, runID) {
+
+} //end createbuttons
+
+//scale factor for png resolution
+var scale_factor = 2.0;
+
+function determine_scalefactor(runID, multi_plot, command){
+	var curr_slider = $("#slider_main");
 	
+	if (multi_plot && runID !='no'){ 
+		// if saving multiple svgs and they are minor modes
+		curr_slider = $("#slider_" + runID);
+	} else if (runID !='no') { // if saving a minor mode
+		curr_slider = $("#slider_" + runID + "_download");
+	}
+
+	if (command == 'png' && multi_plot) {
+		return curr_slider.slider('option','value')*0.5;
+	}
+	return curr_slider.slider('option','value');
+}
+
+function downloadSVG(svg, filename) {
+	var hiddenDownload = document.createElement('a');
+	hiddenDownload.href = svg.src;
+	hiddenDownload.type = "hidden";
+	hiddenDownload.download = filename;
+	document.body.appendChild(hiddenDownload);
+	hiddenDownload.click();
+	document.body.removeChild(hiddenDownload);
+}
+
+function downloadPNG(canvas, filename) {
+	var hiddenDownload = document.createElement('a');
+	hiddenDownload.href = canvas.toDataURL('image/png');
+	hiddenDownload.type = "hidden";
+	hiddenDownload.download = filename;
+	document.body.appendChild(hiddenDownload);
+	hiddenDownload.click();
+	document.body.removeChild(hiddenDownload);
+};
+
+// save an SVG, needs functionality for if it is a 
+// minor mode (getting pop and side labels)
+function saveSVG(currentPlot, is_minor, svg, runID, command) {
+	scale_factor = determine_scalefactor(runID, false, command);
 	//select svg and get pop labels
 	var mysvg = d3.select('#plot'+runID).node();
-	
-	if(is_minor=='no') {
-		var poplabels = d3.select(".majorPopLabels").node();
-	}
-	if(is_minor=='yes') {
-		var kVal = mysvg.getAttribute('class').slice(mysvg.getAttribute('class').indexOf("-")+1);
+	var poplabels = d3.select(".majorPopLabels").node();
+	var popLabelDim = [poplabels.getBoundingClientRect().width + 5, poplabels.getBoundingClientRect().height];
+
+	var date = new Date();
+	var timestamp = date.getFullYear() + "-" + date.getMonth() + "-" +
+		date.getDate() + "_" + date.getHours() + "h" + date.getMinutes() +
+			"m" + date.getSeconds() + "s";
+	var filename = "K=" + d3.select('#plot'+runID)
+		.attr("class")
+		.split(' ')[1] + "_majormode_" + timestamp + "_pong";
+
+	if(is_minor) {
+		var is_first = mysvg.getAttribute('class').split(' ');
+		var kVal = is_first[0].slice(mysvg.getAttribute('class')
+			.indexOf("-")+1);
+		if (is_first.length < 2){
+			filename = runID.substr(0, runID.indexOf("_")) + "_K=" + kVal +
+				"_minormode_" + timestamp + "_pong";
+		} else {
+			filename = runID.substr(0, runID.indexOf("_")) + "_K=" + kVal +
+				"_majormode_" + timestamp + "_pong";
+		}
+
 		poplabels = d3.select(".minorPopLabels_"+kVal).node();
-		var oldHeight = poplabels.getAttribute('height');
-		var oldWidth = poplabels.getAttribute('width');
-		var newDim = getLabelDim("minor_"+kVal+"_pop", "minorPopLabels_"+kVal);
-		poplabels.setAttribute('height', newDim[0]);
-		poplabels.setAttribute('width', newDim[1]);
+		d3.select(".minorPopLabels_"+kVal).attr('height', popLabelDim[1])
+			.attr('width', popLabelDim[0]);
 	}
-	//create new document to display the svg
-  	var canvas = document.createElement('canvas'),
-    img = importSVG(mysvg, canvas),
-    labs = importSVG(poplabels, canvas), 
-    w = window.open();
+	//get size of population labels
+	var svg_bbox = mysvg.getBoundingClientRect();
 
-    if(is_minor=='yes') {
-    	poplabels.setAttribute('height', oldHeight);
-		poplabels.setAttribute('width', oldWidth);
-    }
+	//create new canvas to display the image
+  	var canvas = document.createElement('canvas');
+	canvas.width = (Math.max(popLabelDim[0], svg_bbox.width/zoom.scale()) )*scale_factor + 20;
+	canvas.height = (popLabelDim[1] + svg_bbox.height)*scale_factor + 20;
 
- 	w.document.body.appendChild(img);
- 	w.document.body.appendChild(labs);
+	if (command=="print") {
+		var w = window.open();
+		w.document.title = "pong download";
+	}
 
-	return w;
+	if (command=='svg') {
+		var svg1 = document.createElementNS('http://www.w3.org/2000/svg',
+			'svg');
+
+		svg1.setAttribute('width', Math.max(popLabelDim[0], svg_bbox.width/zoom.scale()));
+		svg1.setAttribute('height', (popLabelDim[1] + svg_bbox.height));
+		svg1.appendChild(mysvg.cloneNode(true));
+
+		var newlabels = poplabels.cloneNode(true);
+		newlabels.setAttribute('y', (svg_bbox.height));
+		svg1.appendChild(newlabels);
+
+		importSVG(svg1, null, 0, function(full_svg){
+			downloadSVG(full_svg, filename + '.svg');
+			if (is_minor){
+				d3.select(".minorPopLabels_"+kVal).attr('height', svgHeight)
+					.attr('width', svgWidth);
+			}
+		});
+		
+	} else {
+	    importSVG(mysvg, canvas, 0, function(img) {
+			importSVG(poplabels, canvas, (svg_bbox.height)*scale_factor, function(labs) {
+				if (command=="print"){
+					w.document.body.appendChild(img);
+					w.document.body.appendChild(labs);
+		    		w.print();
+			    } else {
+				    downloadPNG(canvas, filename+'.png');
+				}
+				if (is_minor){
+					d3.select(".minorPopLabels_"+kVal).attr('height', svgHeight)
+						.attr('width', svgWidth);
+				}
+			});
+		});
+	}
 } //end saveSVG
 
 //code to generate all major mode plots
-var saveAllChild = function(minor) {
-	var canvas = document.createElement('canvas');
-	if(minor=='no') {
-		var allSVGs = document.getElementsByClassName('majorSVG');
-		var labels = d3.select(".majorPopLabels").node();
-	}
-	else { //minor will be a value of K
-		var allSVGs = document.getElementsByClassName('minorSVG-'+minor);
-		var labels = d3.select(".minorPopLabels_"+minor).node();
-		var oldHeight = labels.getAttribute('height');
-		var oldWidth = labels.getAttribute('width');
-		var newDim = getLabelDim("minor_"+minor+"_pop", "minorPopLabels_"+minor);
-		labels.setAttribute('height', newDim[0]);
-		labels.setAttribute('width', newDim[1]);
-	}
-	var svgdict = new Object();
-	w = window.open();
-	for (var i=0; i<allSVGs.length; i++) {
-		var img = importSVG(allSVGs[i], canvas);
-		w.document.body.appendChild(img);
-	}
+function saveAllChild(minor, command) {
+	scale_factor = determine_scalefactor(minor, true, command);
 
-	labs = importSVG(labels, canvas);
-	w.document.body.appendChild(labs);
-	if(minor!='no') {
-    	labels.setAttribute('height', oldHeight);
-		labels.setAttribute('width', oldWidth);
-    }
-	return w;
+	var labels = d3.select(".majorPopLabels").node();
+	var popLabelDim = [labels.getBoundingClientRect().width, labels.getBoundingClientRect().height];
+
+	var date = new Date();
+	var timestamp = date.getFullYear() + "-" + date.getMonth() + "-" +
+		date.getDate() + "_" + date.getHours() + "h" + date.getMinutes() +
+			"m" + date.getSeconds() + "s";
+
+	var filename = "mainviz_" + timestamp + "_pong";
+	var allSVGs = document.getElementsByClassName('majorSVG');
+
+	if(minor!='no') { //minor will be a value of K
+		allSVGs = document.getElementsByClassName('minorSVG-'+minor);
+		filename = "modes_K=" + minor + "_" + timestamp + "_pong";
+
+		labels = d3.select(".minorPopLabels_"+minor).node();
+		d3.select(".minorPopLabels_"+minor).attr('height', popLabelDim[1])
+			.attr('width', popLabelDim[0]);
+	}
+	
+	var svg_bbox = d3.select(allSVGs[0]).node().getBBox();
+
+	var canvas = document.createElement('canvas');
+	canvas.width = (Math.max(popLabelDim[0], svg_bbox.width/zoom.scale() ))*scale_factor;
+	canvas.height = (popLabelDim[1] + (svg_bbox.height + 20)*allSVGs.length) *scale_factor;
+	
+	if (command == 'print'){
+		var w = window.open();
+		w.document.title = "pong download";
+	}
+	var count = 0;
+
+	var svg1 = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+	svg1.setAttribute('width', Math.max(popLabelDim[0], svg_bbox.width/zoom.scale()));
+	svg1.setAttribute('height', (popLabelDim[1] + (svg_bbox.height + 20)*allSVGs.length));
+
+	for (var i=0; i<allSVGs.length; i++) {
+		var svg = d3.select(allSVGs[i]);
+
+		if (command=='svg') {
+			var newsvg = d3.select(allSVGs[i]).node().cloneNode(true);
+			newsvg.setAttribute('y', (svg_bbox.height+20)*i);
+			svg1.appendChild(newsvg);
+
+			count +=1;
+			if (count == allSVGs.length) {
+				var newlabels = labels.cloneNode(true);
+
+				newlabels.setAttribute('y', (svg_bbox.height+20)*allSVGs.length);
+				svg1.appendChild(newlabels);
+
+				importSVG(svg1, null, 0, function(full_svg) {
+					downloadSVG(full_svg, filename + '.svg');
+					if (minor != 'no'){
+						d3.select(".minorPopLabels_"+minor).attr('height', svgHeight)
+							.attr('width', svgWidth);
+					}
+				});	
+			}
+		} else {
+			importSVG(svg.node(), canvas, 
+				(svg_bbox.height+20)*i*scale_factor, function(img) {
+
+				if (command=='print'){
+					w.document.body.appendChild(img);
+				}
+				count +=1;
+				if (count== allSVGs.length) {
+					importSVG(labels, canvas, 
+						(svg_bbox.height+20)*allSVGs.length*scale_factor,
+							function(labs) {
+						if (command == "print") {
+							w.document.body.appendChild(labs);
+							w.print();
+						} else if (command=='png'){
+							downloadPNG(canvas,  filename + '.png');
+						}
+						if (minor != 'no'){
+							d3.select(".minorPopLabels_"+minor).attr('height', svgHeight)
+								.attr('width', svgWidth);
+						}
+					});
+				}
+			});
+		}
+	}
 } //end saveAllChild
 
-// from magi - https://github.com/raphael-group/magi/blob/master/public/js/save.js
-// MAGI developers adapted from https://svgopen.org/2010/papers/62-From_SVG_to_Canvas_and_Back/index.html#svg_to_canvas
-function importSVG(sourceSVG, targetCanvas) {
-  var svg_xml = (new XMLSerializer()).serializeToString(sourceSVG);
-  var ctx = targetCanvas.getContext('2d');
+// from magi (edited)
+// https://github.com/raphael-group/magi/blob/master/public/js/save.js
+// MAGI developers adapted from 
+// https://svgopen.org/2010/papers/62-From_SVG_to_Canvas_and_Back/index.html#svg_to_canvas
+function importSVG(sourceSVG, targetCanvas, height, callback) {
+	var svg_xml = (new XMLSerializer()).serializeToString(sourceSVG);
+	
+	// this is just a JavaScript (HTML) image
+	var img = new Image();
+	// https://developer.mozilla.org/en/DOM/window.btoa
+	img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg_xml)));
 
-  // this is just a JavaScript (HTML) image
-  var img = new Image();
-  // https://developer.mozilla.org/en/DOM/window.btoa
-  img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg_xml)));
+	if (targetCanvas) { 
+		var ctx = targetCanvas.getContext('2d');
+		img.onload = function() {
+			// after this, Canvas’ origin-clean is DIRTY
+			ctx.drawImage(img, 0, 0, img.width, img.height, 0, height,
+				img.width * scale_factor, img.height *scale_factor);
+			if (callback){
+	  			callback(img);
+	  			img.onload = null;
+	  		}
 
-  img.onload = function() {
-      // after this, Canvas’ origin-clean is DIRTY
-      ctx.drawImage(img, 0, 0);
-  }
-  return img;
+		}
+	} else {
+		callback(img);
+	}
 } //end importSVG
 
+// sort clusters correctly
+// e.g. ["c1", "c2", "c12"] rather than ["c1", "c12", "c2"]
+function sortCluster(a,b) {
+	var regNum = /[^0-9]/g;
+	var aNum = parseInt(a.replace(regNum, ""), 10);
+	var bNum = parseInt(b.replace(regNum, ""), 10);
+	return aNum === bNum ? 0 : aNum > bNum ? 1 : -1;
+}
+
+addDropdownMenu(d3.select('#downloadAllDiv'), 'main',
+	d3.select('#downloadAllDropdownLink'), false);
 
 }); //end document ready
 

@@ -1,5 +1,6 @@
 This document serves as a quick-start guide and reference card for installing and using pong. Please refer to the software manual, which can be downloaded from the [Ramachandran Lab website](http://brown.edu/Research/Ramachandran_Lab/projects/), for comprehensive information. 
 
+<a href="https://zenhub.com"><img src="https://raw.githubusercontent.com/ZenHubIO/support/master/zenhub-badge.png"></a>
 # Installing pong
 
 pong has been tested on Mac OS X (10.8-10.11), Linux (Ubuntu 15.04, Linux Mint 17.2), and Windows 7.

@@ -35,7 +35,6 @@ body,h1,h2,h3,h4 {
   font-family: "Lato", "Helvetica", sans-serif;
 }
 
-
 svg {
   /*border: 2px solid black;*/
   padding: 20px 10px 0px;
@@ -58,6 +57,9 @@ svg {
 }
 
 /* SR added to push pop labels closer to barplots */
+.labelSVG {
+  padding-top: 0px;
+}
 .majorPopLabels { 
   padding-top: 0px;
   margin-top: 0px;
@@ -66,9 +68,39 @@ svg {
   padding-top: 0px;
   margin-top: 0px;
 }
+text.popLabels {
+  cursor: pointer;
+}
+.popLabels {
+  font-size: 12px;
+  font-family: Helvetica, sans-serif;
+  margin-top: 10px;
+  z-index: 4;
+}
+.noSelect {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none;   /* Chrome/Safari/Opera */
+  -khtml-user-select: none;    /* Konqueror */
+  -moz-user-select: none;      /* Firefox */
+  -ms-user-select: none;       /* Internet Explorer/Edge */
+}
+}
+#downloadAll {
+  text-decoration: none;
+  color:black;
+}
 
-.popLabels { margin-top: 10px; z-index: 4;}
-.x-axis {z-index: 4;}
+.modalDropdown {
+  display:inline-block;
+}
+
+.printModal {
+  margin: 5px;
+}
+
+#downloadAllDiv {
+  display: inline-block;
+}
 .avg_sim {z-index: 3;}
 
 .btn.btn-info.btn-lg {
@@ -82,35 +114,43 @@ svg {
 }
 .glyphicon.glyphicon-print {
     content: "\e016";
-    color: #337ab7;
+    color: #5bc0de;
     font-size: 16px;
     cursor: pointer;
 }
-
+.glyphicon {
+  color: #5bc0de;
+}
+.glyphicon.glyphicon-download-alt {
+    font-size: 16px;
+    cursor: pointer;
+}
 .d3-tip {
   position: relative;
   /*text-align: center;*/
   width: 110px;
   padding: 4px;
   font-size: 10px; /*font: 10px sans-serif;*/
-  background: white;
-  border: solid 1px #aaa;
+  background: black;
   border-radius: 8px;
   pointer-events: none;
-  z-index: 10;
+  z-index: 1051;
 }
 .d3-tip ul {
   list-style:none;
   padding-left:30%;
+  color: lightgray;
+}
+.text-tip {
+  color: lightgray;
 }
 .d3-tip.s:after {
   box-sizing: border-box;
-  -webkit-text-stroke: 1px #aaa;
-  color: white;
+  color: black;
   display: block;
-  font-size: 10px;
-  width: 100%;
-  line-height: 1;
+  font-size: 12px;
+  width: 90%;
+  line-height: 0.2;
   /* content: "\25BC"; */
   position: absolute;
   text-align: center; 
@@ -118,41 +158,6 @@ svg {
   content: "\25B2";
   margin: 0 0 1px 0;
   /*top: 0px; */
-}
-.d3-minorTip {
-  position: absolute;
-  left: 300px;
-  top: 300px;
-  /*text-align: center;*/
-  width: 110px;
-  padding: 4px;
-  font-size: 10px; /*font: 10px sans-serif;*/
-  background: white;
-  border: solid 1px #aaa;
-  border-radius: 8px;
-  pointer-events: none;
-  z-index: 1051; /*4;*/
-}
-.d3-minorTip ul {
-  list-style:none;
-  padding-left:30%;
-}
-.d3-minorTip.e:after {
-  box-sizing: border-box;
-  -webkit-text-stroke: 1px #aaa;
-  color: white;
-  display: block;
-  font-size: 10px;
-  width: 100%;
-  line-height: 1;
-  /*content: "\25BC";*/
-  position: absolute;
-  /*text-align: center;
-  bottom: -18px;*/
-  content: "\25C0";
-  margin: -4px 0 0 0;
-  top: 50%;
-  left: -8px;
 }
 .btn-danger + .tooltip > .tooltip-inner {
   padding: 7px;
@@ -208,8 +213,20 @@ svg {
   height: 12px; 
   z-index: 99;
 }
-
-
+.axis path,
+.axis line {
+  fill: none;
+  /*stroke: white;*/
+  stroke-width: 1.5;
+  /*shape-rendering: crispEdges;*/
+}
+.axis text {
+  display: none;
+}
+path.area {
+  shape-rendering: crispEdges;
+  cursor: move;
+}
 
 
 

@@ -25,15 +25,21 @@
 	<meta name="msapplication-TileImage" content="{{ static_url("favicon/ms-icon-144x144.png") }}">
 	<meta name="theme-color" content="#ffffff">
 
-
-
 	<!-- Load JS (JQuery, Bootstrap, D3, ColorBrwer, and D3-tip) -->
 	<script src="{{ static_url("dependencies/jquery-2.1.4.min.js") }}" type="text/javascript"></script>
+ 	<script src="{{ static_url("dependencies/jquery-ui.min.js") }}" type="text/javascript"></script>
+
+	
+
+
 	<script src="{{ static_url("dependencies/bootstrap-3.3.5-dist/js/bootstrap.min.js") }}" type="text/javascript"></script>
 	<script src="{{ static_url("dependencies/d3.v3.min.js") }}" type="text/javascript"></script>
 	<script src="{{ static_url("dependencies/colorbrewer.v1.min.js") }}" type="text/javascript"></script>
 	<script src="{{ static_url("dependencies/d3.tip.v0.6.3.js") }}" type="text/javascript"></script>
-
+	<script src="{{ static_url("dependencies/modernizr-custom.js") }}" type="text/javascript"></script>
+	<script src="{{ static_url("dependencies/d3-path.v0.2.min.js") }}" type="text/javascript"></script>
+	<script src="{{ static_url("dependencies/d3-shape.v0.7.min.js") }}" type="text/javascript"></script>
+	
 	<!-- Load online scripts instead of local versions
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 	<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
@@ -43,7 +49,8 @@
 	-->
 	
 	
-	<!-- Load CSS (Bootstrap, Font Awesome) -->
+	<!-- Load CSS (jquery-slider, Bootstrap, Font Awesome) -->
+	<link rel="stylesheet" href="{{ static_url("dependencies/jquery-ui.min.css") }}" type="text/css" />
 	<link rel="stylesheet" href="{{ static_url("dependencies/bootstrap-3.3.5-dist/css/bootstrap.min.css") }}" type="text/css" />
 	<link rel="stylesheet" href="{{ static_url("dependencies/font-awesome-4.4.0/css/font-awesome.min.css") }}" type="text/css" /> <!-- Font Awesome by Dave Gandy - http://fontawesome.io -->
 
@@ -120,7 +127,10 @@
 	<div class="row">
 		<div class="text-center">
 			<br>
-			<button class="btn btn-default" type="submit" id="downloadPDF">Print all barplots</button>
+			<button class="btn btn-default" type="submit" id="printAllPlots">Print all barplots</button>
+			<div class="dropdown dropdown-toggle" id="downloadAllDiv">
+				<a data-toggle="dropdown" aria-expanded="false"><div class="btn btn-default" id="downloadAllDropdownLink">Download all barplots</div></a>
+			</div>
 		</div>
 	</div>
 	<div class="row">
@@ -131,15 +141,11 @@
 	</div>
 	<div class="row">
 		<div class="col-md-12">
-			<p class="text-center"><a href="mailto:aaron_behr@alumni.brown.edu?Subject=pong">A. Behr</a>, K. Liu, G. Liu-Fang, <a href="mailto:sramachandran@brown.edu?Subject=pong">S. Ramachandran</a></p>
+			<p class="text-center"><a href="mailto:aaron_behr@alumni.brown.edu?Subject=pong">A. Behr</a>, K. Liu, T. D. Devlin, G. Liu-Fang, <a href="mailto:sramachandran@brown.edu?Subject=pong">S. Ramachandran</a></p>
 			<p class="text-center">To share your experience as a pong user, visit <a href="https://groups.google.com/forum/#!forum/pong-app" target="_blank">our Google group</a>.</p>
 		</div>
 	</div>
 </div>
-	
-
-
-
 
 </body>
 </html>

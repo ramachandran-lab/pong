@@ -236,16 +236,40 @@ def convert_data(pong):
 			#run.data_transpose_3d = []
 			run.data_transpose_2d = []
 			clus_membership[run.name] = []
+			run.population_object_data = []
 
-
-			for p in order: 
+			count = 0
+			for popNumber,p in enumerate(order):
 				x = [data[i].tolist() for i in p]
 				clus_membership[run.name].append([np.average([pop[r] for pop in x]) for r in range(run.K)])
+
+				new_population = {}
+				new_population["population_index"] = popNumber
+				new_population['members'] = []
+				for i in p:
+					membership = {"cluster"+str(c+1): data[i][c] for c in range(run.K)}
+					membership['index'] = count;
+					new_population["members"].append(membership)
+					count += 1
+				run.population_object_data.append(new_population)
 				#run.data_transpose_3d.append(x)
 				run.data_transpose_2d += x
 
 		else:
 			clus_membership[run.name] = [np.average([indiv[r] for indiv in data]) for r in range(run.K)]
+
+			new_population = {}
+			new_population["population_index"] = 0
+			new_population['members'] = []
+			count = 0
+			for d in data:
+				membership = {"cluster"+str(c+1): d[c] for c in range(run.K)}
+				membership['index'] = count;
+				new_population["members"].append(membership)
+				count += 1
+			run.population_object_data = []
+			run.population_object_data.append(new_population)
+
 			run.data_transpose_2d = data.tolist() #[x.tolist() for x in data.tolist()]
 	pong.indiv_avg = clus_membership
 

@@ -18,6 +18,7 @@ class Run:
 		# data_transpose_3d is None.
 		self.data_transpose_2d = None
 		self.rel_gray = None
+		self.population_object_data = None
 		#self.data_transpose_3d = None
 
 		self.path = path

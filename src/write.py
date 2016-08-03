@@ -207,7 +207,6 @@ def write_json(pong, as_file=False):
 		data["popNames"] = pong.popindex2popname
 		data["popSizes"] = pong.pop_sizes
 
-	data["barchart"] = pong.barchart 
 	data["K_min"] = pong.K_min
 	data["K_max"] = pong.K_max
 	data["colors"] = pong.colors
@@ -258,7 +257,7 @@ def write_json(pong, as_file=False):
 
 	data["sort_by"] = runs[kgroup.primary_run].name # K_max major mode rep run
 	data["indiv_avg"] = pong.indiv_avg
-
+	
 	if not as_file:
 		return data
 

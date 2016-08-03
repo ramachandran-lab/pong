@@ -52,7 +52,6 @@ class Pongdata:
 		self.indiv_avg = None
 
 		self.colors = [] # use custom colors?
-		self.barchart = None 
 
 		# status attr is only necessary if pong is run from within the server
 		# self.status = 0 # incomplete, working, or complete (0,1,2)
@@ -97,7 +96,6 @@ def main():
 	parser.add_argument('-l','--color_list',
 		help='List of colors to be used for visualization. If this file is not '
 		'included, then default colors will be used for visualization.')
-	parser.add_argument('--barchart', default=False, action='store_true', help='plot membership coefficients as a stacked bar chart, versus a path with linear interpolation. Recommended for datasets with <=500 individuals and for creating figures that will be scaled up dramatically in static form.') 
 	parser.add_argument('-f', '--force', default=False,
 		action='store_true', help='force overwrite already existing output '
 		'directory. By default, pong will prompt the user before overwriting.')
@@ -233,7 +231,6 @@ def main():
 	global pongdata
 	pongdata = Pongdata(intro, outputdir, printall)
 	pongdata.colors = colors
-	pongdata.barchart = opts.barchart 
 
 	params_used = intro+'\n\n' # ===============\n
 	params_used += 'pong_filemap file: %s\n' % pong_filemap
@@ -425,12 +422,13 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 				# 'matrix': np.array([run.data[i] for i in run.alignment-1]).transpose().tolist()}))
 
 			if minor=='yes':
-				response = {'type':'q-matrix', 'name':name, 'K':run.K,
-					'matrix2d':run.data_transpose_2d, 'minor':'yes', 'minorID':minorID, 'is_first':is_first} #'matrix3d':run.data_transpose_3d} 
+				#response = {'type':'q-matrix', 'name':name, 'K':run.K,
+				#	'matrix2d':run.data_transpose_2d, 'minor':'yes', 'minorID':minorID, 'is_first':is_first} #'matrix3d':run.data_transpose_3d} 
+				response = {'type':'q-matrix', 'name':name, 'K':run.K,'matrix2d':run.population_object_data, 'minor':'yes', 'minorID':minorID, 'is_first':is_first}
 			else:
-				response = {'type':'q-matrix', 'name':name, 'K':run.K,
-					'matrix2d':run.data_transpose_2d, 'minor':'no', 'minorID': None, 'is_first':None} #'matrix3d':run.data_transpose_3d} 
-			
+				#response = {'type':'q-matrix', 'name':name, 'K':run.K,
+				#	'matrix2d':run.data_transpose_2d, 'minor':'no', 'minorID': None, 'is_first':None} #'matrix3d':run.data_transpose_3d} 
+				response = {'type':'q-matrix', 'name':name, 'K':run.K, 'matrix2d':run.population_object_data, 'minor':'no', 'minorID': None, 'is_first':None}
 
 			self.write_message(json.dumps(response))
 
