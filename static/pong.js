@@ -96,11 +96,17 @@ $('#resize-warning-exit').click(function(){
 // SOCKET THINGS
 var url = "ws://" + location.host + "/pongsocket";
 var socket = new WebSocket(url);
+var progressCount = 0;
+var numPlots = 0;
 socket.onmessage = function(e) {
 	var data = JSON.parse(e.data);
 	if (data.type == 'pong-data') {
 		json = data.pong;
-
+		for (var i in json.qmatrices) {
+			modes = Object.keys(json.qmatrices[i].modes).length;
+			if (modes == 1) { numPlots += 1; }
+			else { numPlots += modes + 1; }
+		}
 		$('#loading').fadeIn();
 		queue += json.qmatrices.length;
 
@@ -124,6 +130,8 @@ socket.onmessage = function(e) {
 			getQmatrix(majorID, 'no', null, null);
 		}
 	} else if (data.type == 'q-matrix') {
+		progressCount += 1;
+		d3.select("#progress-bar").transition().attr("width", 280*progressCount/numPlots);
 		var is_minor;
 		if (data.minor == "yes") is_minor = true;
 		else is_minor = false;
@@ -504,7 +512,7 @@ var modal = function(K, sortedMinorKeys, button, buttonDiv) {
 	minor_svg = new Array();
 
 	var colorPerm = json.qmatrices[K-json.K_min].color_perm;
-	
+
 	$('#modal-' + K).on('hide.bs.modal', function (e) {
 		if (grayClick) {
 			for (i in sortedMinorKeys) {
