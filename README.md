@@ -106,7 +106,7 @@ pong provides default colors (unless _K\_max_ > 26), but it is possible to provi
 
 # Additional resources
 
-The example dataset, software manual, and other relevant materials can be found at the [Ramachandran Lab website](http://brown.edu/Research/Ramachandran_Lab/projects). For discussions and feedback on pong, refer to the [pong Google Group](https://groups.google.com/forum/#!forum/pong-app).
+The example dataset, software manual, and other relevant materials can be found at the [Ramachandran Lab website](http://brown.edu/Research/Ramachandran_Lab/projects). 
 
 Contact [Aaron Behr](mailto:aaron_behr@alumni.brown.edu?subject=pong) or [Sohini Ramachandran](mailto:sramachandran@brown.edu?subject=pong) for more information. 
 
