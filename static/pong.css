@@ -112,6 +112,10 @@ text.popLabels {
   margin: 20px;
   z-index: 5;
   display: block;
+  border-color: #5bc0de;
+}
+.btn.btn-info.btn-lg:hover {
+  border-color: #31b0d5;
 }
 .glyphicon.glyphicon-plus {
   z-index: 5;
@@ -125,6 +129,9 @@ text.popLabels {
 }
 .glyphicon {
   color: #5bc0de;
+}
+.glyphicon:hover {
+  color: #31b0d5;
 }
 .glyphicon.glyphicon-download-alt {
     font-size: 16px;
@@ -232,6 +239,45 @@ path.area {
   shape-rendering: crispEdges;
   cursor: move;
 }
-
-
-
+.page-header {
+  text-align: center;
+}
+#help {
+  display: inline-block;
+  text-align: center;
+  margin: 0 auto;
+  font-size: 20px;
+}
+#help:hover {
+  color:#31b0d5;
+  text-decoration: none;
+  cursor: pointer;
+}
+.popover-title {
+  background-color: white;
+  border-bottom-width: 0px;
+  padding-top: 12px;
+  padding-bottom: 0px;
+}
+.popover.bottom>.arrow {
+  border-bottom-color: black;
+}
+.popover.top>.arrow {
+  border-top-color: black;
+}
+.popover.left>.arrow {
+  border-left-color: black;
+}
+.popover.right>.arrow {
+  border-right-color: black;
+}
+.popover {
+  border-top-color: black;
+  border-bottom-color: black;
+  border-right-color: black;
+  border-left-color: black;
+}
+h3.popover-title {
+  font-weight: 700;
+  color: #5bc0de;
+}

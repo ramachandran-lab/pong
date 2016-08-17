@@ -321,7 +321,7 @@ def run_pong(pongdata, opts, pong_filemap, labels, ind2pop):
 	# COMPUTE BEST-GUESS ALIGNMENTS FOR ALL RUNS WITHIN AND ACROSS K
 	print 'Finding best alignment for all runs within and across K'
 	t3 = time.time()
-	align.compute_alignments(pongdata, 2, opts.sim_threshold) # use a dummy worst_choice for now until we can remove compatibility
+	align.compute_alignments(pongdata, opts.sim_threshold)
 	t4 = time.time()
 
 	if pongdata.print_all:
@@ -418,51 +418,13 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 			is_first = data['is_first']
 
 			# print 'server received request for Q-matrix %s. Column perm %s.' % (name, str(run.alignment-1))
-			# self.write_message(json.dumps({'type': 'q-matrix', 'name': name, 'K': run.K,
-				# 'matrix': np.array([run.data[i] for i in run.alignment-1]).transpose().tolist()}))
 
 			if minor=='yes':
-				#response = {'type':'q-matrix', 'name':name, 'K':run.K,
-				#	'matrix2d':run.data_transpose_2d, 'minor':'yes', 'minorID':minorID, 'is_first':is_first} #'matrix3d':run.data_transpose_3d} 
 				response = {'type':'q-matrix', 'name':name, 'K':run.K,'matrix2d':run.population_object_data, 'minor':'yes', 'minorID':minorID, 'is_first':is_first}
 			else:
-				#response = {'type':'q-matrix', 'name':name, 'K':run.K,
-				#	'matrix2d':run.data_transpose_2d, 'minor':'no', 'minorID': None, 'is_first':None} #'matrix3d':run.data_transpose_3d} 
 				response = {'type':'q-matrix', 'name':name, 'K':run.K, 'matrix2d':run.population_object_data, 'minor':'no', 'minorID': None, 'is_first':None}
 
 			self.write_message(json.dumps(response))
-
-
-		# THIS MIGHT BE DEPRECATED WITH THE NEW PRINT WINDOW?
-		elif data['type'] == 'svg':
-			dl_dir = None
-			try:
-				dl_dir = path.expanduser('~/Downloads')
-			except:
-				pass
-			if path.isdir(dl_dir):
-				print 'Saving file %s.svg to your Downloads folder.' % data['name']
-			else:
-				dl_dir = pongdata.output_dir
-				print 'Could not find Downloads folder; saving file %s.svg to the output dir.' % data['name']
-
-			# filename = '.'+data['name']+'.svg'
-			# svg2pdf(data['svg'], write_to=path.join(dl_dir, filename))
-			with open(path.join(dl_dir,data['name']+'.svg'),'w') as f: f.write(data['svg'])
-			# os.rename(path.join(dl_dir, filename), path.join(dl_dir, filename[1:])) # do not show file until it is complete
-
-		elif data['type'] == 'multi-svg':
-			svg_dir = path.join(pongdata.output_dir, 'plotSVGs')
-			print 'Saving plot SVGs in %s.' % svg_dir
-
-			# prepare SVG dir within output dir
-			if path.isdir(svg_dir): rmtree(svg_dir)
-			os.makedirs(svg_dir)
-
-			for name,svg in data['svg-dict'].items():
-				name = path.join(svg_dir,name)+'.svg'
-				with open(name, 'w') as f: f.write(svg)
-
 
 		else:
 			sys.exit('Error: Received invalid socket message from client')

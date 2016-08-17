@@ -33,6 +33,7 @@
 
 
 	<script src="{{ static_url("dependencies/bootstrap-3.3.5-dist/js/bootstrap.min.js") }}" type="text/javascript"></script>
+	<script src="{{ static_url("dependencies/bootstrap-tour.min.js") }}" type="text/javascript"></script>
 	<script src="{{ static_url("dependencies/d3.v3.min.js") }}" type="text/javascript"></script>
 	<script src="{{ static_url("dependencies/colorbrewer.v1.min.js") }}" type="text/javascript"></script>
 	<script src="{{ static_url("dependencies/d3.tip.v0.6.3.js") }}" type="text/javascript"></script>
@@ -53,6 +54,7 @@
 	<link rel="stylesheet" href="{{ static_url("dependencies/jquery-ui.min.css") }}" type="text/css" />
 	<link rel="stylesheet" href="{{ static_url("dependencies/bootstrap-3.3.5-dist/css/bootstrap.min.css") }}" type="text/css" />
 	<link rel="stylesheet" href="{{ static_url("dependencies/font-awesome-4.4.0/css/font-awesome.min.css") }}" type="text/css" /> <!-- Font Awesome by Dave Gandy - http://fontawesome.io -->
+	<link rel="stylesheet" href="{{ static_url("dependencies/bootstrap-tour.min.css") }}" type="text/css" />
 
 	<!-- Load online styles instead of local versions
 	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css"/>
@@ -113,6 +115,7 @@
 		<div class="col-md-10">
 			<div class="page-header">
 				<h1 class="text-center pong-title">pong</h1>
+				<span id="help" class="glyphicon glyphicon-question-sign"></span>
 			</div>
 		</div>
 		<div class="col-md-1"></div>
@@ -128,7 +131,7 @@
 
 <div class="container">
 	<div class="row">
-		<div class="text-center">
+		<div class="text-center print-download">
 			<br>
 			<button class="btn btn-default" type="submit" id="printAllPlots">Print all barplots</button>
 			<div class="dropdown dropdown-toggle" id="downloadAllDiv">
@@ -145,7 +148,7 @@
 	<div class="row">
 		<div class="col-md-12">
 			<p class="text-center"><a href="mailto:aaron_behr@alumni.brown.edu?Subject=pong">A. Behr</a>, K. Liu, T. D. Devlin, G. Liu-Fang, <a href="mailto:sramachandran@brown.edu?Subject=pong">S. Ramachandran</a></p>
-			<p class="text-center">To share your experience as a pong user, visit <a href="https://groups.google.com/forum/#!forum/pong-app" target="_blank">our Google group</a>.</p>
+			<p class="text-center">To share your experience as a pong user, visit <a href="https://github.com/abehr/pong" target="_blank">our git repository</a>.</p>
 		</div>
 	</div>
 </div>

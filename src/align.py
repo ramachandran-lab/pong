@@ -5,7 +5,7 @@ from munkres import Munkres # this needs to be pip installed
 
 m = Munkres()
 
-def compute_alignments(pong, worst_choice,sim_thresh):
+def compute_alignments(pong, sim_thresh):
 	runs, all_kgroups = pong.runs, pong.all_kgroups
 	'''
 	Alignment of runs within each K is relative to the perm in the alignment
@@ -18,7 +18,7 @@ def compute_alignments(pong, worst_choice,sim_thresh):
 	'''
 	# ALIGN RUNS ACROSS K
 	if len(all_kgroups)>1:
-		aligned_perms = align_perms_across_K(pong, worst_choice)
+		aligned_perms = align_perms_across_K(pong)
 		for alignment,kgroup in zip(aligned_perms, all_kgroups):
 			kgroup.alignment_across_K = alignment
 			if not valid_perm(condense_perm(alignment)):
@@ -32,11 +32,10 @@ def compute_alignments(pong, worst_choice,sim_thresh):
 		primary_alignment = [x+1 for x in range(kgroup.K)]
 		aligned_perms = [primary_alignment]
 		runs[kgroup.primary_run].rel_alignment = primary_alignment
-		# print("test: ", kgroup.primary_run, runs[kgroup.primary_run].rel_alignment)
 
 		for run in [x for x in kgroup.all_runs if x != kgroup.primary_run]:
 			na, best_perm = get_best_perm(pong, kgroup.primary_run, 
-				run, worst_choice,sim_thresh)
+				run, sim_thresh)
 			# best_perm = pong.cluster_matches[kgroup.primary_run][run].perm
 			aligned_perms.append(best_perm)
 			runs[run].rel_alignment = best_perm
@@ -55,12 +54,9 @@ def compute_alignments(pong, worst_choice,sim_thresh):
 		# RECORD EACH RUN'S ALIGNMENT
 		for i,run in enumerate(kgroup.all_runs):
 			runs[run].alignment = kgroup.alignment[i]
-			# print("rel gray", kgroup.K, runs[run].rel_gray)
+
 			if runs[run].rel_gray:
 				runs[run].rel_gray = [kgroup.alignment[i].tolist().index(x) for x in runs[run].rel_gray]
-			# print("permuted gray", runs[run].rel_gray, "alignment", runs[run].name, kgroup.alignment[i])
-			# print("run's alignment: ", run, kgroup.alignment[i])
-
 
 def find_permutation(mat,column_labels,within=False,sim_thresh=0):
 	indexes = m.compute(mat)
@@ -68,9 +64,9 @@ def find_permutation(mat,column_labels,within=False,sim_thresh=0):
 	for row,column in indexes:
 		value = 1-mat[row][column]
 		total += value
-		#print("(%d,%d) : %.4f" % (row,column,value))
+
 	average = total/len(indexes)
-	# print("total: %.4f , average: %.4f" %(total,average))
+
 	p = [column_labels[x[1]] for x in indexes]
 	perm1,perm2 = simplify_perm(p)
 
@@ -80,11 +76,10 @@ def find_permutation(mat,column_labels,within=False,sim_thresh=0):
 
 		return perm1,perm2,average,gray
 
-	
 	return perm1,perm2,average
 
 
-def get_best_perm(pong, run1, run2, worst_choice=2, sim_thresh=.97):
+def get_best_perm(pong, run1, run2, sim_thresh=.97):
 	runs = pong.runs
 	cluster_matches = pong.cluster_matches
 	''' get best perm aligning run2 with run1.
@@ -98,7 +93,6 @@ def get_best_perm(pong, run1, run2, worst_choice=2, sim_thresh=.97):
 	input = [1 2 3], [2/4 1 3]
 	output = [1 1 2 3], [2 4 1 3]
 
-	We won't look past the worst_choice'th choice for matching
 	'''
 	match = cluster_matches[run1][run2]
 
@@ -134,7 +128,7 @@ def get_best_perm(pong, run1, run2, worst_choice=2, sim_thresh=.97):
 	return p1,p2
 
 
-def align_perms_across_K(pong, worst_choice):
+def align_perms_across_K(pong):
 	all_kgroups = pong.all_kgroups
 	'''
 	here I have to assume that we're getting matched solutions across K where
@@ -147,7 +141,7 @@ def align_perms_across_K(pong, worst_choice):
 	all_perms = []
 	for kgroup1,kgroup2 in zip(all_kgroups[:-1],all_kgroups[1:]):
 		perm1, perm2 = get_best_perm(pong, kgroup1.primary_run, 
-			kgroup2.primary_run, worst_choice)
+			kgroup2.primary_run)
 		all_perms.append([perm1,perm2])
 
 	#print all_perms

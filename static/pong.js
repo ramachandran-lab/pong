@@ -110,9 +110,14 @@ socket.onmessage = function(e) {
 		$('#loading').fadeIn();
 		queue += json.qmatrices.length;
 
-		popNames = json.popNames;
-		popSizes = json.popSizes
-
+		if (json.hasOwnProperty("popNames") && json.hasOwnProperty("popSizes")) {
+			popNames = json.popNames;
+			popSizes = json.popSizes;
+		} else {
+			popNames = {};
+			popSizes = {};
+		}
+		
 		if (json.colors.length > 0) colors = json.colors;
 		else if (json.K_max > 9) colors = colors_26;
 		all_svg = new Array();
@@ -278,11 +283,13 @@ var generateVis = function(svg, K, qData, is_minor, minorID, is_first, name) {
 		});
 
 	var paths = d3.selectAll("path.area");
-	paths.call(zoom)
-		.call(tip)
-		.on('mouseover', tip.show)
-		.on('mouseout', tip.hide)
-		.on("dblclick.zoom", null);;
+	paths.call(zoom).on("dblclick.zoom", null);
+
+	if (Object.keys(popNames).length > 0) {
+		paths.call(tip)
+			.on('mouseover', tip.show)
+			.on('mouseout', tip.hide);
+	}
 
 	xAxis = d3.svg.axis()
 		.scale(xScale)
@@ -318,7 +325,9 @@ var generateVis = function(svg, K, qData, is_minor, minorID, is_first, name) {
 			.attr("class", "labelSVG")
 			.attr("transform", "translate("+(translate - border/2)+",0)");
 			
-		var labels = addPopLabels(labelGroup, false, K, tickVals);
+		if (Object.keys(popNames).length > 0) {
+			addPopLabels(labelGroup, false, K, tickVals);
+		}
 
 		svglabelGroup.attr('height', labelGroup.node().getBBox().height+80);
 
@@ -333,7 +342,9 @@ var generateVis = function(svg, K, qData, is_minor, minorID, is_first, name) {
 			.attr('class', "labelSVGminor_" + K)
 			.attr("transform", "translate("+(translate - border/2)+",0)");
 
-		var labels = addPopLabels(labelGroup, true, K, tickVals);
+		if (Object.keys(popNames).length > 0) {
+			addPopLabels(labelGroup, true, K, tickVals);
+		}
 
 		addModalFooter(K);
 	}
@@ -341,7 +352,7 @@ var generateVis = function(svg, K, qData, is_minor, minorID, is_first, name) {
 	//creating print buttons for major modes; 
 	//for minor mode we probably need minorID
 	createbuttons(svg, K, currentPlot, is_minor, json.K_min, "print"); 
-	createbuttons(svg, K, currentPlot, is_minor, json.K_min, "download"); 
+	// createbuttons(svg, K, currentPlot, is_minor, json.K_min, "download"); 
 	if(!is_minor) {
 		var myID = currentPlot.major_mode_runid;
 	}
@@ -411,10 +422,6 @@ function draw() {
 }
 
 var addPopLabels = function(labelGroup, is_minor, K, data) {
-	// unique pop id for selection
-	if (is_minor) popid = "minor_" + K + "_pop" + i;
-	else popid = "major_pop" + i; 
-
 	var labels = labelGroup.selectAll(".popLabels")
 		.data(data)
 		.enter()
@@ -450,7 +457,6 @@ var addPopLabels = function(labelGroup, is_minor, K, data) {
 				popClick = !popClick;
 			}
 		});
-	return labels;
 }
 
 // updating svg dim
@@ -779,6 +785,81 @@ var tip = d3.tip()
 		return body;
 	}); //end html
 
+
+
+
+
+// Create a new tour
+var tour = new Tour({
+	storage: false
+});
+// Add your steps
+tour.addSteps([
+    {
+    	placement: "top",
+    	backdrop: true,
+        orphan: true,
+        title: "Welcome to pong!",
+        content: "This tour will walk you through pong's main features."
+    },
+    {
+        element: ".background:first",
+        placement: "bottom",
+        title: "The major mode plot",
+        content: function() { 
+        	return "This plot shows a representative run of the major mode for K = " +
+        	json.K_min + ". You can zoom in and out of the plots by placing your cursor " +
+        	"above the plot and performing a mouse scroll. Clicking on a color within " +
+        	" a plot will highlight that color across K values in all plots (including minor modes).";
+        }
+    },
+    {
+        element: ".majorPopLabels",
+        placement: "top",
+        title: "Population labels",
+        content: function() { 
+        	return "Clicking on a population label will highlight that population across K values. Shift-" +
+        	"clicking allows you to select multiple populations.";
+        }
+    },
+    {
+        element: ".pbDiv:last",
+        placement: "right",
+        title: "Print and download",
+        content: "These icons let you print a plot or download it locally as a PNG or SVG."
+    },
+    {
+        element: ".print-download",
+        placement: "top",
+        title: "Print and download everything",
+        content: "Alternatively, use these buttons to print/download all currently displayed plots in one file."
+    },
+    {
+        element: "button.modes:last",
+        placement: "left",
+        title: "Minor modes",
+        content: "If there is multimodality for a given K value, you can click on this " +
+        "button to see representative runs for the minor mode(s)."
+    },
+    {
+        orphan: true,
+        placement: "top",
+        backdrop: true,
+        title: "That's the bulk of it!",
+        content: "Consult the documentation to find out more about pong's features. " +
+        "Feel free to reach out to us directly if you have any questions or feedback. " +
+        "We hope you enjoy using pong!"
+    }
+
+]); 
+// Initialize method on the Tour class. Get's everything loaded up and ready to go.
+tour.init();
+$("#help").on("click", function() {
+	tour.restart();
+});
+
+
+
 // print all plots of default visualization
 $(document).on('click','#printAllPlots', function(){
 	saveAllChild('no', 'print');
@@ -899,15 +980,18 @@ var addDropdownMenu = function(footer_download, myID, icon, multiPlot_minor) {
 //create and position for print button glyph
 var createbuttons = function(svg, K, currentPlot, is_minor, K_min, type) {
 	if(!is_minor) {
-		var pbDiv = d3.select('body').append('div').attr('class', 'pbDiv');
-		var myID = currentPlot.major_mode_runid + "_" + type;
+		var pbDiv = d3.select('body').append('div').attr('class', 'pbDiv')
+			.style('top', (svgHeight*1.125)*(K-K_min+1)+110 + 'px'); 
+		var myID_print = currentPlot.major_mode_runid + "_print";
+		var myID_download = currentPlot.major_mode_runid + "_download";
 	}
 	if(is_minor) { 
 		// minor_index = the "index" of this plot, out of all the plots in modal
 		var pbDiv = d3.select('#modal_body_'+K)
 			.append('div')
 			.attr('class', 'pbDiv');
-		var myID = svg[0][0].getAttribute('id').slice(4) + "_" + type;
+		var myID_print = svg[0][0].getAttribute('id').slice(4) + "_print";
+		var myID_download = svg[0][0].getAttribute('id').slice(4) + "_download";
 		var runID = (svg[0][0].getAttribute('id').slice(4))
 					.slice(0,svg[0][0].getAttribute('id')
 						.slice(4)
@@ -916,46 +1000,6 @@ var createbuttons = function(svg, K, currentPlot, is_minor, K_min, type) {
 		var sortedMinorKeys = sortKeyList(currentPlot, keyList);
 		// 0 for major mode rep run
 		var minor_index = sortedMinorKeys.indexOf(runID);
-	}
-
-	// add print button in a div
-	if (type=="print") {
-		var icon = pbDiv.append('a').attr('id', myID)
-			.append('span').attr('class', 'glyphicon glyphicon-print');
-	} else if (type=="download"){
-		var icon = pbDiv.attr("class", "dropdown")
-			.append('a').attr('id', myID)
-			.attr('data-toggle', 'dropdown')
-			.attr('class', 'dropdown-toggle')
-			.attr('aria-expanded', 'false')
-			.attr('aria-hadpopup', 'true')
-			.append('span').attr('class', 'glyphicon glyphicon-download-alt');
-
-		addDropdownMenu(pbDiv,myID, icon, false);
-
-	}
-
-	//figure out where in the K values this plot is
-	var left = "40px";
-	if (type=="download"){
-		var left = "62px";
-	} 
-	//give title to print button on mouseover, and set position
-	if(!is_minor) {
-		if (type != "download") icon.attr('title', type + " K=" + K + " barplot");
-
-		icon.attr('id', type + "-major-"+K);
-		pbDiv.style('position', 'absolute')
-			.style('top', (svgHeight*1.125)*(K-K_min+1)+90 + 'px')
-			.style('left', left); 
-	}
-	if(is_minor) {
-		if (type != "download") icon.attr('title', type + " " + runID + " barplot");
-		
-		icon.attr('id', type + "-minor-"+runID);
-		pbDiv.style('position', 'absolute')
-			.style('left', left); 
-
 
 		if(minor_index==0) { //the major mode rep run
 			pbDiv.style('top', svgHeight*0.5*(-1) + 'px');
@@ -965,7 +1009,43 @@ var createbuttons = function(svg, K, currentPlot, is_minor, K_min, type) {
 		}
 	}
 
+	var left = "32px";
+	pbDiv.style('position', 'absolute')
+		.style('display', 'inline-flex')
+		.style('left', left);
 
+	// add print button in a div
+	var icon = pbDiv.append('a').attr('id', myID_print)
+		.style('margin', '4px')
+		.append('span')
+		.attr('class', 'glyphicon glyphicon-print');
+	
+	//give title to print button on mouseover, and set position
+	if(!is_minor){
+		icon.attr('title', "Print K=" + K + " barplot");
+		icon.attr('id', "print-major-"+K);
+	} else {
+		icon.attr('title', "Print " + runID + " barplot");
+		icon.attr('id', "print-minor-"+runID);
+	}
+	
+	pbDiv = pbDiv.append('div')
+		.attr("class", "dropdown")
+		.style('margin', '4px');
+	var icon = pbDiv.append('a').attr('id', myID_download)
+		.attr('data-toggle', 'dropdown')
+		.attr('class', 'dropdown-toggle')
+		.attr('aria-expanded', 'false')
+		.attr('aria-hadpopup', 'true')
+		.append('span').attr('class', 'glyphicon glyphicon-download-alt');
+
+	addDropdownMenu(pbDiv,myID_download,icon, false);
+	if (!is_minor){
+		icon.attr('id', "download-major-"+K);
+	}else {
+		icon.attr('id', "download-minor-"+runID);
+	}
+	
 } //end createbuttons
 
 //scale factor for png resolution
@@ -1014,7 +1094,7 @@ function saveSVG(currentPlot, is_minor, svg, runID, command) {
 	//select svg and get pop labels
 	var mysvg = d3.select('#plot'+runID).node();
 	var poplabels = d3.select(".majorPopLabels").node();
-	var popLabelDim = [poplabels.getBoundingClientRect().width + 5, poplabels.getBoundingClientRect().height];
+	var popLabelDim = [poplabels.getBoundingClientRect().width + 5, poplabels.getBoundingClientRect().height + 5];
 
 	var date = new Date();
 	var timestamp = date.getFullYear() + "-" + date.getMonth() + "-" +
@@ -1097,7 +1177,7 @@ function saveAllChild(minor, command) {
 	scale_factor = determine_scalefactor(minor, true, command);
 
 	var labels = d3.select(".majorPopLabels").node();
-	var popLabelDim = [labels.getBoundingClientRect().width, labels.getBoundingClientRect().height];
+	var popLabelDim = [labels.getBoundingClientRect().width + 5, labels.getBoundingClientRect().height + 5];
 
 	var date = new Date();
 	var timestamp = date.getFullYear() + "-" + date.getMonth() + "-" +

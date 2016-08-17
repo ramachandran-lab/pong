@@ -7,6 +7,7 @@ print_distruct_perm_files(pong)
 
 '''
 import os
+import sys
 from os import path
 import numpy as np
 from align import condense_perm, valid_perm
@@ -116,10 +117,14 @@ def find_splitting_clusters(permk, permkp1):
 	indices = [i for i,x in enumerate(tmp_permk) if x == cluster_which_splits]
 	
 	# may not want to include this error checking
-	if len(indices) != 2:
-		print 'error there should be exactly 2 bc it\'s splitting into 2 rn'
-	if indices[1] != indices[0]+1:
-		print 'error the 2nd one should come right after the 1st one amirite?'
+	try:
+		assert (len(indices) == 2) #there should be exactly 2 bc it's splitting into 2
+		assert (indices[1] == indices[0]+1) #the 2nd one should come right after the 1st
+	except AssertionError:
+  		print('An error occurred on line {} in an assertion statement. Please report this' 
+  			' problem by contacting the pong team or posting in the Google group.'.format(sys.exc_traceback.tb_lineno))
+  		exit(1)
+
 
 	# find the cluster nums at k+1 corresponding to these indices
 	child_clusters = [tmp_permkp1[i] for i in indices]

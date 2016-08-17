@@ -111,7 +111,7 @@ def output_cluster_match_details(pong):
 def output_alignments(pong):
 	runs, all_kgroups, output_dir = pong.runs, pong.all_kgroups, pong.output_dir
 	'''
-	Output representative run Q-matrices. 
+	Output representative run Q matrices. 
 
 	Creates files with the "best" alignment of clusters for each run,
 	both within and across K.

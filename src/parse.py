@@ -11,7 +11,7 @@ import warnings
 
 
 def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file, ind2pop):
-	error = '\nError parsing input file: could not convert Q-matrix data '
+	error = '\nError parsing input file: could not convert Q matrix data '
 	error += 'entry to float.\nPerhaps the value of `--ignore_first_columns` '
 	error += 'is incorrect or a file with a different format was included '
 	error += 'somewhere.\n'
@@ -39,20 +39,20 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 
 	if krange != range(krange[0], krange[-1]+1):
 		sys.exit('Error parsing input files: there must be at least one '
-			'Q-matrix for every K in [min_K, max_K]')
+			'Q matrix for every K in [min_K, max_K]')
 
 	pong.K_min = krange[0]
 	pong.K_max = krange[-1]
 	pong.all_kgroups = [Kgroup(K) for K in krange]
 
-	if pong.K_min < 2:
+	if pong.K_min < 1:
 		sys.exit('Error: Q matrix with K=%d encountered in filemap, which is not supported by pong. '
-			'Make sure all input files have K greater than or equal to 2.' % pong.K_min)
+			'Make sure all input files have K greater than or equal to 1.' % pong.K_min)
 
 	if pong.K_max > 26 and not pong.colors:
 		sys.exit('Pong does not support values of K greater than 26 by default. '
 			'Please provide a custom color file with as many colors as the largest '
-			'value of K from the Q-matrices.')
+			'value of K from the Q matrices.')
 
 	if pong.colors and pong.K_max > len(pong.colors):
 		sys.stdout.write('\nWarning: The custom color file provided does not contain enough colors '
@@ -63,32 +63,34 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 				r = raw_input('Please enter "y" to overwrite or '
 						'"n" to exit: ')
 			if r in ('n','N'): sys.exit('Make sure there are as many colors in the color file as the largest '
-				'value of K from the Q-matrices.')
+				'value of K from the Q matrices.')
 			pong.colors = []
 		
 		# TO DO: if k_max < 26, option to use default colors
 
 	fp_rel = path.split(filemap)[0] 
 
-	n = set() # make sure all Q-matrices have the same number of individuals
+	n = set() # make sure all Q matrices have the same number of individuals
 
 	for q in qfiles_info:
 		p = path.join(fp_rel, q[2])
 
-		#read Q-matrix information into array
+		#read Q matrix information into array
 		try:
 			data = np.genfromtxt(p,loose=False, unpack=True,delimiter=col_delim,
 				autostrip=True,usecols=range(ignore_cols,ignore_cols+q[1]))
+			if (q[1] == 1):
+				data = [data]
 		except ValueError:
 			sys.exit(error)
 
 		K = len(data)
 		if K==0:
-			sys.exit('Error parsing Q-matrix data: check that the value of '
+			sys.exit('Error parsing Q matrix data: check that the value of '
 				'`--ignore_first_columns` matches the input data format.')
 		if K != q[1]:
 			sys.exit('Error parsing input files: encountered unexpected value '
-				'of K.\nMake sure all input files have K greater than or equal to 2.')
+				'of K.\nMake sure all input files have K greater than or equal to 1.')
 		
 		n.add(len(data[0]))
 
@@ -103,14 +105,14 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 		pong.runs[run.id] = run
 
 		if name in pong.name2id:
-			sys.exit('Error parsing filemap: encountered duplicate Q-matrix ID %s.' % name)
+			sys.exit('Error parsing filemap: encountered duplicate Q matrix ID %s.' % name)
 
 		pong.name2id[name] = run.id
 
 		pong.all_kgroups[K-pong.K_min].all_runs.append(run.id)
 
 	if len(n) > 1:
-		sys.exit('Error parsing input files: found Q-matrices with different '
+		sys.exit('Error parsing input files: found Q matrices with different '
 			'numbers of individuals or populations.')
 
 
@@ -120,7 +122,7 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 	if not ind2pop: return
 	# ================= PARSE METADATA / POP INFO ========================
 	'''
-	ind2pop is either an int (i.e., which column of the Q-matrix has ind2pop data),
+	ind2pop is either an int (i.e., which column of the Q matrix has ind2pop data),
 	or it's a 1-column file with num_indiv lines.
 
 	labels specifies the L-to-R order for visualizing the populations. It can
@@ -128,7 +130,7 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 	- just put each population on its own line in order
 	- or it can be a 2-column, tab-delimited file which specifies both the 
 	  L-to-R order and pop code to pop name. the code is usually a number (e.g.
-	  for structure Q-files it's usually a number) but it could also be a shorter
+	  for structure Q files it's usually a number) but it could also be a shorter
 	  name code (like CEU) that you want to expand for the final visualization.
 
 	NOTE: ind2pop is allowed w/o labels; labels is not allowed w/o ind2pop.
@@ -138,8 +140,8 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 	popCode to index)? Only because list.index() is worst-case O(n) and dict.get() is O[1].
 	'''
 
-	# if ind2pop data is contained within the Q-matrices, parse it here. just
-	# use the last Q-matrix that was parsed, it doesn't really matter which
+	# if ind2pop data is contained within the Q matrices, parse it here. just
+	# use the last Q matrix that was parsed, it doesn't really matter which
 	if type(ind2pop) == int:
 		pong.ind2pop = np.genfromtxt(p, unpack=True, delimiter=col_delim,
 			autostrip=True, usecols=(ind2pop-1,), dtype=str)
@@ -149,7 +151,8 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 	if len(pong.ind2pop) != pong.num_indiv:
 		if len(pong.ind2pop) > 1:
 			sys.exit('error: individual population file assignment contains more than 1 column of data')
-		sys.exit('error - Inconsistent number of individuals found across dataset')
+		sys.exit('error - Inconsistent number of individuals found across dataset.'
+			' Check that all Q matrices and ind2pop data have the same number of rows.')
 	
 	if not labels_file:
 		pops = set(pong.ind2pop)
@@ -234,7 +237,7 @@ def convert_data(pong):
 			
 
 			#run.data_transpose_3d = []
-			run.data_transpose_2d = []
+			# run.data_transpose_2d = []
 			clus_membership[run.name] = []
 			run.population_object_data = []
 
@@ -253,7 +256,7 @@ def convert_data(pong):
 					count += 1
 				run.population_object_data.append(new_population)
 				#run.data_transpose_3d.append(x)
-				run.data_transpose_2d += x
+				# run.data_transpose_2d += x
 
 		else:
 			clus_membership[run.name] = [np.average([indiv[r] for indiv in data]) for r in range(run.K)]
@@ -270,7 +273,7 @@ def convert_data(pong):
 			run.population_object_data = []
 			run.population_object_data.append(new_population)
 
-			run.data_transpose_2d = data.tolist() #[x.tolist() for x in data.tolist()]
+			# run.data_transpose_2d = data.tolist() #[x.tolist() for x in data.tolist()]
 	pong.indiv_avg = clus_membership
 
 

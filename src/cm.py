@@ -159,7 +159,7 @@ def match_clusters(pong, run1, run2, K, dist_metric, fixed_K):
 
 	e.g. edges = [ [ (0.99,(1,)), (0.87,(2,3)), ...], [ (0.98,(2,)),...],...]
 
-	FIGURE OUT OVERALL Q-MATRIX SIMILARITY: assuming you pick the best cluster 
+	FIGURE OUT OVERALL Q MATRIX SIMILARITY: assuming you pick the best cluster 
 	match in run2 for each cluster in run1, how similar are the two matrices?
 	This information is used by clump() to determine multimodality and
 	condense the dataset.
