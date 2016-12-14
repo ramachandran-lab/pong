@@ -12,21 +12,29 @@ import warnings
 
 def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file, ind2pop):
 	error = '\nError parsing input file: could not convert Q matrix data '
-	error += 'entry to float.\nPerhaps the value of `--ignore_first_columns` '
+	error += 'entry to float.\nPerhaps the value of `--ignore_columns` '
 	error += 'is incorrect or a file with a different format was included '
 	error += 'somewhere.\n'
+
+	# List of characters that have special meaning in CSS syntax (and thus cannot be used in runIDs
+	# unless we decide to escape them before passing them to the front end), plus whitespace.
+	css_special_chars = ["!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", 
+			":", ";", "<", "=", ">", "?", "@", "[", "\\", "]", "^", "`", "{", "|", "}", "~", " ", "\t"]
 
 
 	# filemap is in the format: run_id\tK_value\trel/path/to/qmatrix
 	try:
 		with warnings.catch_warnings():
 			warnings.simplefilter("ignore")
+			# note that np.genfromtxt has a default value of comments='#'
 			qfiles_info = np.genfromtxt(filemap, delimiter='\t', 
 				dtype=[('f0',object), ('f1',int), ('f2',object)],
 				loose=False, autostrip=True)
 	except ValueError:
 		sys.exit('Error parsing filemap: check that the file is tab-'
-			'delimited and that the columns are ordered properly.')
+			'delimited, that the columns are ordered properly, and that the \'#\' character '
+			'is not used other than to indicate the start of a comment (i.e. it cannot '
+			'be used as part of a runID).')
 
 
 	if (qfiles_info.size < 1):
@@ -68,8 +76,11 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 		
 		# TO DO: if k_max < 26, option to use default colors
 
-	fp_rel = path.split(filemap)[0] 
+	# Decode string escapes in col delim (e.g. convert unicode escaped tab to string tab)
+	# This prevents numpy from interpreting user-input tab as literally backslash t
+	if col_delim: col_delim = col_delim.decode("string_escape")
 
+	fp_rel = path.split(filemap)[0] 
 	n = set() # make sure all Q matrices have the same number of individuals
 
 	for q in qfiles_info:
@@ -95,12 +106,8 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 		n.add(len(data[0]))
 
 		name = q[0]
-		if name.isdigit():
-			sys.exit('Error: runID cannot only be an integer. '
-				'It must be a string that contains at least one letter.')
-		if '#' in name or '.' in name:
-			sys.exit('Error: Invalid character encountered in runID. runIDs cannot '
-				'contain \'#\' or \'.\' characters.')
+		validate_run_id(name) # will cause SystemExit if runID is invalid
+
 		run = Run(K, name, data, p)
 		pong.runs[run.id] = run
 
@@ -288,6 +295,23 @@ def sort_indiv(pong, pop):
 	return pop
 
 
+def validate_run_id(runid):
+	'''A runID must begin with a letter (A-Z/a-z), followed by any number of hyphens (-), 
+	underscores (_), letters, or numbers. This is primarily to comply with valid CSS 
+	selector syntax.
+	'''
+	error = 'Error: encountered invalid runID: '
+
+	if len(runid) == 0:
+		sys.exit(error + runid + '. All runIDs must have at least one character.')
+	
+	if not runid[0].isalpha():
+		sys.exit(error + runid + '. All runIDs must start with a letter (A-Z/a-z).')
+
+	for c in runid:
+		if not (c.isalpha() or c.isdigit() or c == '_' or c == '-'):
+			sys.exit(error + runid + '. All runIDs must contain only letters (A-Z/a-z), '
+				'numbers (0-9), underscores (_) and hyphens (-).')
 
 
 # def convert_data(pong):
