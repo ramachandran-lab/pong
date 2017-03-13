@@ -291,6 +291,18 @@ var generateVis = function(svg, K, qData, is_minor, minorID, is_first, name) {
 			.on('mouseout', tip.hide);
 	}
 
+	var majorrepruns = d3.selectAll('#major_repstring')
+	majorrepruns.call(reprun_tip)
+		.on('mouseover', reprun_tip.show)
+	 	.on('mouseout', reprun_tip.hide)
+
+	if(is_minor) {
+		var minorrepruns = d3.selectAll('#minor_repstring')
+		minorrepruns.call(reprun_tip)
+		 	.on('mouseover', reprun_tip.show)
+		 	.on('mouseout', reprun_tip.hide);
+	}
+
 	xAxis = d3.svg.axis()
 		.scale(xScale)
 		.orient("bottom")
@@ -617,11 +629,15 @@ var printLabels = function(svg, K, currentPlot) {
 	//major runs out of total runs under K label
 	runs = svg.append('text')
 		.text(numMajorRuns+'/'+totRuns+' runs')
-		.attr('id', 'major_bigstring');
+		.attr('id', 'major_repstring');
 	runs.attr("x",0).attr("y", yPos+25);
 	runs.style('font', '12px Helvetica, sans-serif');
 
-	var bbox = document.getElementById('major_bigstring').getBBox();
+	var reppedruns = new Array (currentPlot.modes[majorID].runs_represented.sort().join('-'), "runs")
+	runs.data(reppedruns)
+	runs.style('fill', '#5bc0de').style('text-decoration', 'underline');
+
+	var bbox = document.getElementById('major_repstring').getBBox();
 	var width = bbox.width;
 	if(width > translate) translate = width + 5;
 
@@ -665,9 +681,14 @@ var printMinorLabels = function(svg, currentPlot, minorID, is_first) {
 	rep.style('font', '12px Helvetica, sans-serif');
 	//num x/x runs
 	runs = svg.append('text').text(numMinorRuns+'/'+totRuns+' runs');
-	runs.attr('class', 'minorRun');
+	runs.attr('id', 'minor_repstring');
 	runs.attr('x',0).attr('y', yPos+30-26);
 	runs.style('font', '12px Helvetica, sans-serif');
+
+	var reppedruns = new Array (currentPlot.modes[minorID].runs_represented.sort().join('-'), "runs")
+	runs.data(reppedruns)
+	runs.style('fill', '#5bc0de').style('text-decoration', 'underline');
+
 	//puts avg_sim in labels section
 	avg_sim = currentPlot.modes[minorID].avg_sim;
 	if(avg_sim!=null) {
@@ -748,6 +769,22 @@ var similarity = function(svg, K) {
 						avg_sim_bt_modes);
 }
 
+// repruns tooltip
+var reprun_tip = d3.tip()
+	.direction('s') // put southward tooltip underneath svg
+	.attr('class', 'd3-tip')
+	.offset([10,0])
+	.attr('font-size', '14px')
+	.html(function(d) {
+		var runids = d.split('-')
+		var body = '<div class="text-center text-tip"><strong>runs<br>represented</strong>'; 
+		for (var i = 0, len = runids.length; i < len; i++) {
+ 			body += '<br>' + runids[i];
+		}
+		//body += '<div><ul>';
+		return(body)
+	});
+
 // tooltip
 var tip = d3.tip()
 	.direction('s') // put southward tooltip underneath svg
@@ -811,6 +848,14 @@ tour.addSteps([
         	json.K_min + ". You can zoom in and out of the plots by placing your cursor " +
         	"above the plot and performing a mouse scroll. Clicking on a color within " +
         	" a plot will highlight that color across K values in all plots (including minor modes).";
+        }
+    },
+    {
+        element: "#major_repstring:first",
+        placement: "right",
+        title: "Runs represented",
+        content: function() { 
+        	return "Hovering here shows you which runs are represented by the major mode plot for K = " + json.K_min + ", sorted by runID.";
         }
     },
     {
