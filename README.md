@@ -12,6 +12,15 @@ To install pong, run:
 ```bash
 pip install pong
 ```
+### Note as of March 2019:
+The newest version of munkres, a pong dependency, is no longer compatible with Python 2; we will push an update of pong to pip ASAP. For now, use this workaround:
+
+You should be able to fix the issue on your local machine by swapping out for the version of munkres that pong needs:
+
+```bash
+pip uninstall munkres
+pip install munkres==1.0.12
+```
 
 ### Linux-specific tips
 
