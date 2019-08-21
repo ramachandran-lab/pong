@@ -372,6 +372,9 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 	global pongdata
 	clients = set()
 
+	def check_origin(self, origin):
+		return True
+
 	def open(self):
 		WSHandler.clients.add(self)
 		

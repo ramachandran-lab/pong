@@ -94,7 +94,7 @@ $('#resize-warning-exit').click(function(){
 /* ========================================================================= */
 
 // SOCKET THINGS
-var url = "ws://" + location.host + "/pongsocket";
+var url = (location.protocol == 'https:' ? "wss://" : 'ws://') + location.host + location.pathname + "pongsocket";
 var socket = new WebSocket(url);
 var progressCount = 0;
 var numPlots = 0;
@@ -1179,7 +1179,7 @@ function saveSVG(currentPlot, is_minor, svg, runID, command) {
 	}
 
 	if (command=='svg') {
-		var svg1 = document.createElementNS('http://www.w3.org/2000/svg',
+		var svg1 = document.createElementNS('//www.w3.org/2000/svg',
 			'svg');
 
 		svg1.setAttribute('width', Math.max(popLabelDim[0], svg_bbox.width/zoom.scale()));
@@ -1253,7 +1253,7 @@ function saveAllChild(minor, command) {
 	}
 	var count = 0;
 
-	var svg1 = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+	var svg1 = document.createElementNS('//www.w3.org/2000/svg', 'svg');
 	svg1.setAttribute('width', Math.max(popLabelDim[0], svg_bbox.width/zoom.scale()));
 	svg1.setAttribute('height', (popLabelDim[1] + (svg_bbox.height + 20)*allSVGs.length));
 
