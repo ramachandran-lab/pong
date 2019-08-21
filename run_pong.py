@@ -19,7 +19,7 @@ import tornado.websocket
 sys.path.insert(0, path.join(path.dirname(__file__),'src'))
 import parse, cm, write, align, distruct
 
-
+PONG_URL_PATH=os.environ.get("PONG_URL_PATH","/")
 
 clients = []
 threads = []
@@ -281,7 +281,7 @@ def main():
 		app.listen(opts.port)
 		msg = '-----------------------------------------------------------\n'
 		msg += 'pong server is now running locally & listening on port %s\n' % opts.port
-		msg += 'Open your web browser and navigate to http://localhost:%s to see the visualization\n\n'% opts.port
+		msg += 'Open your web browser and navigate to http://localhost:%s%s to see the visualization\n\n'% (opts.port, PONG_URL_PATH)
 		sys.stdout.write(msg)
 		
 		try:
@@ -354,12 +354,13 @@ def run_pong(pongdata, opts, pong_filemap, labels, ind2pop):
 class Application(tornado.web.Application):
 	def __init__(self):
 		handlers = [
-			(r"/", MainHandler),
-			(r"/pongsocket", WSHandler),
+			(PONG_URL_PATH, MainHandler),
+			(PONG_URL_PATH + "pongsocket", WSHandler)
 		]
 		settings = dict(
 			template_path=path.join(path.dirname(__file__), "templates"),
 			static_path=path.join(path.dirname(__file__), "static"),
+			static_url_prefix=PONG_URL_PATH + 'static/',
 		)
 		tornado.web.Application.__init__(self, handlers, **settings)
 
