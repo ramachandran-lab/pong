@@ -61,8 +61,8 @@ version = 'DEV'
 intro = '\n'
 intro += '-------------------------------------------------------------------\n'
 intro += '                            p o n g\n'
-intro += '      by A. Behr, K. Liu, G. Liu-Fang, and S. Ramachandran\n'
-intro += '                       Version %s (2016)\n' % version
+intro += '      by A. Behr, K. Liu, T. Devlin, G. Liu-Fang, and S. Ramachandran\n'
+intro += '                       Version %s (2019)\n' % version
 intro += '-------------------------------------------------------------------\n'
 intro += '-------------------------------------------------------------------\n'
 
@@ -133,9 +133,9 @@ def main():
 		sys.exit('Error: You are running Python %d; pong requires version 2.' % sys.version_info.major)
 	if sys.version_info.minor != 7:
 		sys.exit('Error: You are running Python 2.%d; pong requires version 2.7.' % sys.version_info.minor)
-	if sys.version_info.micro < 8:
+	if sys.version_info.micro < 9:
 		sys.stdout.write('Warning: you are running an older version of Python (v2.7.%d). '
-			'We recommend upgrading to a newer version of Python 2 (version 2.7.8 or later), '
+			'We recommend upgrading to a newer version of Python 2 (version 2.7.9 or later), '
 			'otherwise you may experience issues running pong.\n'  % sys.version_info.micro)
 		r = raw_input('Continue anyway? (y/n): ')
 		while r not in ('y','Y','n','N'):

@@ -3,7 +3,7 @@ This document serves as a quick-start guide and reference card for installing an
 <a href="https://zenhub.com"><img src="https://raw.githubusercontent.com/ZenHubIO/support/master/zenhub-badge.png"></a>
 # Installing pong
 
-pong has been tested on Mac OS X (10.8-10.11), Linux (Ubuntu 15.04, Linux Mint 17.2), and Windows 7.
+pong has been tested on Mac OS X (10.8-10.15), Linux (Ubuntu 15.04, Linux Mint 17.2), and Windows 7.
 
 pong is hosted on [PyPI](https://pypi.python.org/pypi) and can thus be easily installed with `pip`. In order to run pong, you need Python 2 (version 2.7.8 or newer) and a modern web browser (e.g. Chrome, Firefox, Safari). pong is not compatible with Internet Explorer.
 
@@ -11,15 +11,6 @@ To install pong, run:
 
 ```bash
 pip install pong
-```
-### Note as of March 2019:
-The newest version of munkres, a pong dependency, is no longer compatible with Python 2; we will push an update of pong to pip ASAP. For now, use this workaround:
-
-You should be able to fix the issue on your local machine by swapping out for the version of munkres that pong needs:
-
-```bash
-pip uninstall munkres
-pip install munkres==1.0.12
 ```
 
 ### Linux-specific tips

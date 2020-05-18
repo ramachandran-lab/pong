@@ -187,9 +187,15 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 			pong.pop_order = labels.tolist()
 			pong.popcode2popname = dict(zip(labels,labels)) # just map each pop to itself
 
+
+		if len(set(pong.pop_order)) != len(pong.pop_order):
+			duplicate_labels = list(pong.pop_order)
+			for p in set(pong.pop_order): duplicate_labels.remove(p)
+			sys.exit('Error: found duplicate pop names in labels file. Each line should '
+				'contain a single pop name.\nDuplicates found: ' + str(duplicate_labels))
+
 		
 		if set(pong.pop_order) != set(pong.ind2pop):
-			# could be more descriptive here (e.g. print set differences)
 			labels_only = set(pong.pop_order)-set(pong.ind2pop)
 			ind2pop_only = set(pong.ind2pop)-set(pong.pop_order)
 			s = 'Error: pop names in labels file are not the same as pop names in ind2pop file. '
