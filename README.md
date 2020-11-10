@@ -52,6 +52,9 @@ pong -m pong_filemap -n pop_order_expandednames.txt -i ind2pop.txt
 
 Information regarding pong's application to the input data will be displayed to your terminal window. After its algorithms complete, pong initializes a web server on [localhost:4000](http://localhost:4000) (you can change the port on which pong operates with the command line option `--port`). Once you navigate to [localhost:4000](http://localhost:4000) on your web browser, pong will detect a new browser connection and begin rendering the visualization.
 
+To host the pong web server from a URL path other than "/", set the environment variable PONG_URL_PATH.
+For example, `PONG_URL_PATH=/apps/pong/` (note the trailing "/" is required) will host pong from `http://localhost:4000/apps/pong/`.
+This can be useful when the pong web server is hosted behind a reverse proxy that uses path-based routing.
 
 # Running pong on your own data
 
