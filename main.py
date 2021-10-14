@@ -19,17 +19,14 @@ import tornado.websocket
 import munkres # not used here, just checking version
 import networkx as nx # not used here, just checking version
 
-version = 'DEV'
-
-#pylint: disable=import-error
-if version == 'DEV':
-	sys.path.insert(0, path.join(path.dirname(__file__), 'src'))
-	import parse, cm, write, align, distruct
-else:
-	import pong
-	from pong import parse, cm, write, align, distruct
 #pylint: enable=import-error
 
+with open(path.join(path.dirname(__file__), 'VERSION')) as f:
+	version = f.read().strip()
+
+year = 2021
+sys.path.insert(0, path.dirname(__file__))
+import parse, cm, write, align, distruct
 
 clients = []
 threads = []
@@ -70,7 +67,7 @@ intro = '\n'
 intro += '-------------------------------------------------------------------\n'
 intro += '                            p o n g\n'
 intro += '      by A. Behr, K. Liu, T. Devlin, G. Liu-Fang, and S. Ramachandran\n'
-intro += '                       Version %s (2020)\n' % version
+intro += '                       Version %s (%d)\n' % (version, year)
 intro += '-------------------------------------------------------------------\n'
 intro += '-------------------------------------------------------------------\n'
 
@@ -143,18 +140,18 @@ def main():
 	
 	fmt_v = lambda module: module.__version__.split('.')
 	deps = True # dependencies are good
-	deps = deps and sys.version_info.minor >= 7 # python 3.7 or higher
+	deps = deps and sys.version_info.minor >= 6 # python 3.7 or higher
 	deps = deps and int(fmt_v(np)[0]) == 1 # numpy v1
-	deps = deps and int(fmt_v(np)[1]) >= 18 # 1.18 or higher
+	deps = deps and int(fmt_v(np)[1]) >= 19 # 1.19 or higher
 	deps = deps and int(fmt_v(munkres)[0]) == 1 # munkres v1
 	deps = deps and int(fmt_v(munkres)[1]) >= 1 # 1.1 or higher
 	deps = deps and int(fmt_v(nx)[0]) == 2 # networkx v2
-	deps = deps and int(fmt_v(nx)[1]) >= 4 # 2.4 or higher
+	deps = deps and int(fmt_v(nx)[1]) >= 5 # 2.5 or higher
 	deps = deps and int(tornado.version_info[0]) == 6 # tornado v6
 
 	if not deps:
 		sys.stdout.write(f'Warning: pong expects the following dependencies:\n'
-			f' - python >= 3.7 (installed: v3.{sys.version_info.micro}),\n'
+			f' - python >= 3.7 (installed: v3.{sys.version_info.minor}),\n'
 			f' - numpy >= 1.18 (installed: {np.__version__}),\n'
 			f' - munkres >= 1.1 (installed: {munkres.__version__}),\n'
 			f' - networkx >= 2.4 (installed: {nx.__version__}),\n'
@@ -380,7 +377,7 @@ class Application(tornado.web.Application):
 			(r"/", MainHandler),
 			(r"/pongsocket", WSHandler),
 		]
-		src = path.dirname(__file__) if version == 'DEV' else pong.__path__[0]
+		src = path.dirname(__file__) # if version == 'DEV' else pong.__path__[0]
 		settings = dict(
 			template_path=path.join(src, "templates"),
 			static_path=path.join(src, "static"),
