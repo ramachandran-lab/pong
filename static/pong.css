@@ -89,7 +89,7 @@ text.popLabels {
   -moz-user-select: none;      /* Firefox */
   -ms-user-select: none;       /* Internet Explorer/Edge */
 }
-}
+
 #downloadAll {
   text-decoration: none;
   color:black;
@@ -218,7 +218,6 @@ text.popLabels {
 }
 .swatch {
   float: left;
-  display: inline-block;
   margin-left: 13px;
   /*margin-right: 10px;*/
   width: 12px; 

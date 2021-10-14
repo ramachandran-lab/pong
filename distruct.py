@@ -42,7 +42,7 @@ def generate_distruct_perm_files(pong, colors):
 
 		# figure out which cluster splits in the prev K and which two
 		# clusters @ this K came from it
-		cluster_which_splits, child_clusters = find_splitting_clusters(
+		_, child_clusters = find_splitting_clusters(
 			all_kgroups[k-1].alignment_across_K, kgroup.alignment_across_K)
 
 		# figure out which of the resulting chidlren @ this K has more memb
@@ -72,14 +72,14 @@ def generate_color_perms(pong):
 	# EDGE CASE OF LOWEST VALUE OF K, for which we don't need to think about the
 	# color assignment 
 	kgroup = pong.all_kgroups[0]
-	kgroup.color_perm = range(kgroup.K)
+	kgroup.color_perm = list(range(kgroup.K))
 
 	for k in range(1, len(pong.all_kgroups)):
 		kgroup = pong.all_kgroups[k]
 
 		# figure out which cluster splits in the prev K and which two
 		# clusters @ this K came from it
-		splitting_cluster, child_clusters = find_splitting_clusters(
+		_, child_clusters = find_splitting_clusters(
 			pong.all_kgroups[k-1].alignment_across_K, kgroup.alignment_across_K)
 
 		# figure out which of the resulting chidlren @ this K has more memb
@@ -114,7 +114,7 @@ def find_splitting_clusters(permk, permkp1):
 	cluster_which_splits = find_duplicate_element(tmp_permk)
 	
 	# find the indices containing cluster_which_splits
-	indices = [i for i,x in enumerate(tmp_permk) if x == cluster_which_splits]
+	indices = [i for i, x in enumerate(tmp_permk) if x == cluster_which_splits]
 	
 	# may not want to include this error checking
 	try:
@@ -122,7 +122,7 @@ def find_splitting_clusters(permk, permkp1):
 		assert (indices[1] == indices[0]+1) #the 2nd one should come right after the 1st
 	except AssertionError:
   		print('An error occurred on line {} in an assertion statement. Please report this' 
-  			' problem by contacting the pong team or posting in the Google group.'.format(sys.exc_traceback.tb_lineno))
+  			' problem by contacting the pong team.'.format(sys.exc_info().tb_lineno))
   		exit(1)
 
 
@@ -163,8 +163,8 @@ def print_distruct_perm_files(pong):
 				x = (pong.runs[run].name, rep)
 				name = 'distruct_perm_file_%s%s.txt' % x
 				
-				with open(path.join(permfiles_dir, name),'w') as f:
-					for cluster,color in zip(pong.runs[run].alignment,colors):
+				with open(path.join(permfiles_dir, name), 'w') as f:
+					for cluster, color in zip(pong.runs[run].alignment, colors):
 						f.write( '%d %s\n' % (cluster, color) )
 
 

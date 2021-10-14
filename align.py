@@ -19,12 +19,12 @@ def compute_alignments(pong, sim_thresh):
 	# ALIGN RUNS ACROSS K
 	if len(all_kgroups)>1:
 		aligned_perms = align_perms_across_K(pong)
-		for alignment,kgroup in zip(aligned_perms, all_kgroups):
+		for alignment, kgroup in zip(aligned_perms, all_kgroups):
 			kgroup.alignment_across_K = alignment
 			if not valid_perm(condense_perm(alignment)):
 				error = '\n\nWARNING: could not align perms across K. '
 				error += 'May not be possible to obtain good results.\n'
-				print error
+				print(error)
 
 
 	# ALIGN RUNS WITHIN EACH K
@@ -34,7 +34,7 @@ def compute_alignments(pong, sim_thresh):
 		runs[kgroup.primary_run].rel_alignment = primary_alignment
 
 		for run in [x for x in kgroup.all_runs if x != kgroup.primary_run]:
-			na, best_perm = get_best_perm(pong, kgroup.primary_run, 
+			_, best_perm = get_best_perm(pong, kgroup.primary_run, 
 				run, sim_thresh)
 			# best_perm = pong.cluster_matches[kgroup.primary_run][run].perm
 			aligned_perms.append(best_perm)
@@ -52,7 +52,7 @@ def compute_alignments(pong, sim_thresh):
 			kgroup.alignment = kgroup.rel_alignment
 
 		# RECORD EACH RUN'S ALIGNMENT
-		for i,run in enumerate(kgroup.all_runs):
+		for i, run in enumerate(kgroup.all_runs):
 			runs[run].alignment = kgroup.alignment[i]
 
 			if runs[run].rel_gray:
@@ -61,22 +61,22 @@ def compute_alignments(pong, sim_thresh):
 def find_permutation(mat,column_labels,within=False,sim_thresh=0):
 	indexes = m.compute(mat)
 	total = 0.0
-	for row,column in indexes:
+	for row, column in indexes:
 		value = 1-mat[row][column]
 		total += value
 
 	average = total/len(indexes)
 
 	p = [column_labels[x[1]] for x in indexes]
-	perm1,perm2 = simplify_perm(p)
+	perm1, perm2 = simplify_perm(p)
 
 	# for graying out
 	if within:
 		gray = {column_labels[indexes[x][1]] for x in range(len(indexes)) if (1-mat[indexes[x][0]][indexes[x][1]]) > sim_thresh}
 
-		return perm1,perm2,average,gray
+		return perm1, perm2, average, gray
 
-	return perm1,perm2,average
+	return perm1, perm2, average
 
 
 def get_best_perm(pong, run1, run2, sim_thresh=.97):
@@ -99,19 +99,18 @@ def get_best_perm(pong, run1, run2, sim_thresh=.97):
 	if runs[run2].K == runs[run1].K+1:
 		run2_tuples = [y for y in match.to_nodes if len(y)==2]
 		average = 0
-		tmp_tuple = (0,0)
-		for t0,t1 in run2_tuples:
-			labels = [(x,) for x in range(1,runs[run2].K+1) if x != t0 and x != t1] + [(t0,t1)]
-			mat = [[1-match.edges[(y+1,x)] for x in labels] for y in range(len(labels))]
+		for t0, t1 in run2_tuples:
+			labels = [(x,) for x in range(1, runs[run2].K+1) if x != t0 and x != t1] + [(t0, t1)]
+			mat = [[1-match.edges[(y+1, x)] for x in labels] for y in range(len(labels))]
 
-			tmp_p1,tmp_p2,tmp_average = find_permutation(mat,labels)
+			tmp_p1, tmp_p2, tmp_average = find_permutation(mat, labels)
 			if tmp_average > average:
-				p1,p2,average = tmp_p1,tmp_p2,tmp_average 
+				p1, p2, average = tmp_p1, tmp_p2, tmp_average 
 	else:
 		labels = sorted(match.to_nodes)
-		mat = [[1-match.edges[(y+1,x)] for x in labels] for y in range(len(labels))]
+		mat = [[1-match.edges[(y+1, x)] for x in labels] for y in range(len(labels))]
 
-		p1,p2,average,gray = find_permutation(mat,labels,within=True,sim_thresh=sim_thresh)
+		p1, p2, average, gray = find_permutation(mat, labels, within=True, sim_thresh=sim_thresh)
 		if runs[run2].represented_by == run2:
 			runs[run2].rel_gray = simplify_perm(gray)[1]
 
@@ -122,10 +121,10 @@ def get_best_perm(pong, run1, run2, sim_thresh=.97):
 		# if pong.print_all: print s
 		return p1, p2
 
-	print '%s, could not find good match valid perm' % runs[run2].name
+	print('%s, could not find good match valid perm' % runs[run2].name)
 
 	# return 1st choice perm if valid or if we couldn't find any valid perm
-	return p1,p2
+	return p1, p2
 
 
 def align_perms_across_K(pong):
@@ -139,10 +138,10 @@ def align_perms_across_K(pong):
 
 	# GENERATE ALL PERMS
 	all_perms = []
-	for kgroup1,kgroup2 in zip(all_kgroups[:-1],all_kgroups[1:]):
+	for kgroup1, kgroup2 in zip(all_kgroups[:-1], all_kgroups[1:]):
 		perm1, perm2 = get_best_perm(pong, kgroup1.primary_run, 
 			kgroup2.primary_run)
-		all_perms.append([perm1,perm2])
+		all_perms.append([perm1, perm2])
 
 	#print all_perms
 
@@ -164,7 +163,7 @@ def align_perms_across_K(pong):
 		# TODO: maybe use the code from simplify_perm
 		index = aligned_perms[-1].index(val)
 
-		for j,perm in enumerate(aligned_perms):
+		for j, perm in enumerate(aligned_perms):
 			aligned_perms[j].insert(index, perm[index])
 
 
@@ -220,7 +219,7 @@ def condense_perm(p, p2=None):
 		else:
 			i += 1
 
-	if p2: return r,r2
+	if p2: return r, r2
 	return r
 
 
@@ -229,10 +228,9 @@ def valid_perm(p):
 	Returns true if the input perm is a 'valid' perm, i.e. is equivalent
 	to range(1,something)
 	'''
-	psort = list(p)
-	psort.sort()
+	psort = sorted(p)
 	
-	for i,e in enumerate(psort):
+	for i, e in enumerate(psort):
 		if e != i+1: return False
 
 	return True
@@ -250,13 +248,13 @@ def simplify_perm(p):
 	input = [(2,), (4,), (1,3), (5,)]
 	output = [1,2,3,3,4], [2,4,1,3,5]
 	'''
-	merged = [i for i,x in enumerate(p) if len(x)==2]
+	merged = [i for i, x in enumerate(p) if len(x)==2]
 	# if len(merged)==0 or len(merged)>1: return None
 
 	perm1 = []
 	perm2 = []
 
-	for i,x in enumerate(p):
+	for i, x in enumerate(p):
 		perm1 += ( [i+1, i+1] if i in merged else [i+1] )
 		perm2 += ( [x[0], x[1]] if i in merged else [x[0]] )
 

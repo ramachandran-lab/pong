@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# Ensure env in case this file is being run as an executable
 
 '''
 author: Aaron Behr
@@ -15,11 +16,17 @@ from shutil import rmtree
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
+import munkres # not used here, just checking version
+import networkx as nx # not used here, just checking version
 
-sys.path.insert(0, path.join(path.dirname(__file__),'src'))
+#pylint: enable=import-error
+
+with open(path.join(path.dirname(__file__), 'VERSION')) as f:
+	version = f.read().strip()
+
+year = 2021
+sys.path.insert(0, path.dirname(__file__))
 import parse, cm, write, align, distruct
-
-
 
 clients = []
 threads = []
@@ -56,13 +63,11 @@ class Pongdata:
 		# status attr is only necessary if pong is run from within the server
 		# self.status = 0 # incomplete, working, or complete (0,1,2)
 
-version = 'DEV'
-
 intro = '\n'
 intro += '-------------------------------------------------------------------\n'
 intro += '                            p o n g\n'
 intro += '      by A. Behr, K. Liu, T. Devlin, G. Liu-Fang, and S. Ramachandran\n'
-intro += '                       Version %s (2019)\n' % version
+intro += '                       Version %s (%d)\n' % (version, year)
 intro += '-------------------------------------------------------------------\n'
 intro += '-------------------------------------------------------------------\n'
 
@@ -88,12 +93,12 @@ def main():
 		'written to. By default, pong makes a folder named "pong_output_datetime" in '
 		'the current working directory, where "datetime" is the current system date and time.')
 
-	parser.add_argument('-i','--ind2pop', default=None,
+	parser.add_argument('-i', '--ind2pop', default=None,
 		help='ind2pop data (can be either a Q-matrix column number or the ' 
 		'path to a file containing the data).')
 	parser.add_argument('-n', '--pop_names', default=None,
 		help='Path to file containing population order/names.')
-	parser.add_argument('-l','--color_list',
+	parser.add_argument('-l', '--color_list',
 		help='List of colors to be used for visualization. If this file is not '
 		'included, then default colors will be used for visualization.')
 	parser.add_argument('-f', '--force', default=False,
@@ -113,7 +118,7 @@ def main():
 	parser.add_argument('--disable_server', default=False, action='store_true',
 		help='run pong\'s algorithm without initializing a server instance or '
 		'visualizing results.')
-	parser.add_argument('-p','--port', type=int, default=4000,
+	parser.add_argument('-p', '--port', type=int, default=4000,
 		help='Specify port on which the server should locally host. Default = 4000.')
 	parser.add_argument('-v', '--verbose', default=False,
 		action='store_true', help='Report more details about clustering '
@@ -128,20 +133,35 @@ def main():
 
 	opts = parser.parse_args()
 
-	# Check system Python version
-	if sys.version_info.major != 2:
-		sys.exit('Error: You are running Python %d; pong requires version 2.' % sys.version_info.major)
-	if sys.version_info.minor != 7:
-		sys.exit('Error: You are running Python 2.%d; pong requires version 2.7.' % sys.version_info.minor)
-	if sys.version_info.micro < 9:
-		sys.stdout.write('Warning: you are running an older version of Python (v2.7.%d). '
-			'We recommend upgrading to a newer version of Python 2 (version 2.7.9 or later), '
-			'otherwise you may experience issues running pong.\n'  % sys.version_info.micro)
-		r = raw_input('Continue anyway? (y/n): ')
-		while r not in ('y','Y','n','N'):
-			r = raw_input('Please enter "y" to overwrite or "n" to exit: ')
-		if r in ('n','N'): sys.exit(1)
+	# Check system Python version and dependency versions. These are enforced
+	# when installing/upgrading via pip, but not if running dev version.
+	if sys.version_info.major != 3:
+		sys.exit('Error: You are running Python %d; pong requires version 3.' % sys.version_info.major)
+	
+	fmt_v = lambda module: module.__version__.split('.')
+	deps = True # dependencies are good
+	deps = deps and sys.version_info.minor >= 6 # python 3.7 or higher
+	deps = deps and int(fmt_v(np)[0]) == 1 # numpy v1
+	deps = deps and int(fmt_v(np)[1]) >= 19 # 1.19 or higher
+	deps = deps and int(fmt_v(munkres)[0]) == 1 # munkres v1
+	deps = deps and int(fmt_v(munkres)[1]) >= 1 # 1.1 or higher
+	deps = deps and int(fmt_v(nx)[0]) == 2 # networkx v2
+	deps = deps and int(fmt_v(nx)[1]) >= 5 # 2.5 or higher
+	deps = deps and int(tornado.version_info[0]) == 6 # tornado v6
 
+	if not deps:
+		sys.stdout.write(f'Warning: pong expects the following dependencies:\n'
+			f' - python >= 3.7 (installed: v3.{sys.version_info.minor}),\n'
+			f' - numpy >= 1.18 (installed: {np.__version__}),\n'
+			f' - munkres >= 1.1 (installed: {munkres.__version__}),\n'
+			f' - networkx >= 2.4 (installed: {nx.__version__}),\n'
+			f' - tornado >= 6 (installed: {tornado.version}).\n'
+			f'We recommend upgrading these modules, otherwise you may\n'
+			f'experience issues running pong.\n')
+		r = input('Continue anyway? (y/n): ')
+		while r not in ('y', 'Y', 'n', 'N'):
+			r = input('Please enter "y" to overwrite or "n" to exit: ')
+		if r in ('n', 'N'): sys.exit(1)
 
 
 	# Check validity of pongparams file
@@ -188,18 +208,18 @@ def main():
 			sys.stdout.write('\nWarning: Could not find color file '
 				'at %s.\n' % color_file)
 			
-			r = raw_input('Continue using default colors? (y/n): ')
-			while r not in ('y','Y','n','N'):
-				r = raw_input('Please enter "y" to overwrite or '
+			r = input('Continue using default colors? (y/n): ')
+			while r not in ('y', 'Y', 'n', 'N'):
+				r = input('Please enter "y" to overwrite or '
 					'"n" to exit: ')
-			if r in ('n','N'): sys.exit(1)
+			if r in ('n', 'N'): sys.exit(1)
 
 			color_file = None
 		else:
 			sys.stdout.write('\nCustom colors provided. Visualization utilizes the '
 				'color white.\nIf color file contains white, users are advised to '
 				'replace it with another color.\n')
-			with open(color_file,'r') as f:
+			with open(color_file, 'r') as f:
 				colors = [x for x in [l.strip() for l in f] if x != '']
 
 
@@ -216,12 +236,12 @@ def main():
 			rmtree(outputdir)
 		else:
 			outputdir_name = os.path.split(outputdir)[1]
-			print '\nOutput dir %s already exists.' % outputdir_name
+			print('\nOutput dir %s already exists.' % outputdir_name)
 
-			r = raw_input('Overwrite? (y/n): ')
-			while r not in ('y','Y','n','N'):
-				r = raw_input('Please enter "y" to overwrite or "n" to exit: ')
-			if r in ('n','N'): sys.exit(1)
+			r = input('Overwrite? (y/n): ')
+			while r not in ('y', 'Y', 'n', 'N'):
+				r = input('Please enter "y" to overwrite or "n" to exit: ')
+			if r in ('n', 'N'): sys.exit(1)
 			rmtree(outputdir)
 
 	os.makedirs(outputdir)
@@ -241,7 +261,7 @@ def main():
 
 	pongdata.sim_threshold = opts.sim_threshold
 
-	with open(os.path.join(pongdata.output_dir,'params_used.txt'),'w') as f:
+	with open(os.path.join(pongdata.output_dir, 'params_used.txt'), 'w') as f:
 		f.write(params_used)
 
 
@@ -251,7 +271,7 @@ def main():
 
 	# ========================= RUN PONG ======================================
 
-	print pongdata.intro
+	print(pongdata.intro)
 
 
 	# Code for running pong from the tornado app
@@ -299,18 +319,18 @@ def run_pong(pongdata, opts, pong_filemap, labels, ind2pop):
 
 	t0=time.time()
 	# PARSE INPUT FILE AND ORGANIZE DATA INTO GROUPS OF RUNS PER K
-	print 'Parsing input and generating cluster network graph'
+	print('Parsing input and generating cluster network graph')
 	parse.parse_multicluster_input(pongdata, pong_filemap, opts.ignore_cols, 
 		opts.col_delim, labels, ind2pop)
 
 
 	# MATCH CLUSTERS FOR RUNS WITHIN EACH K AND CONDENSE TO REPRESENTATIVE RUNS
-	print 'Matching clusters within each K and finding representative runs'
+	print('Matching clusters within each K and finding representative runs')
 	t1 = time.time()
 	cm.clump(pongdata, opts.dist_metric, opts.sim_threshold, opts.greedy)
 
 	# MATCH CLUSTERS ACROSS K
-	print 'Matching clusters across K'
+	print('Matching clusters across K')
 	cm.multicluster_match(pongdata, opts.dist_metric)
 	t2 = time.time()
 
@@ -319,7 +339,7 @@ def run_pong(pongdata, opts, pong_filemap, labels, ind2pop):
 	
 	# print(pongdata.name2id)
 	# COMPUTE BEST-GUESS ALIGNMENTS FOR ALL RUNS WITHIN AND ACROSS K
-	print 'Finding best alignment for all runs within and across K'
+	print('Finding best alignment for all runs within and across K')
 	t3 = time.time()
 	align.compute_alignments(pongdata, opts.sim_threshold)
 	t4 = time.time()
@@ -334,7 +354,7 @@ def run_pong(pongdata, opts, pong_filemap, labels, ind2pop):
 	distruct.generate_color_perms(pongdata)
 	if len(pongdata.colors) > 0:
 		if (pongdata.print_all):
-			print 'Generating perm files for Distruct'
+			print('Generating perm files for Distruct')
 			distruct.generate_distruct_perm_files(pongdata, pongdata.colors)
 	
 
@@ -342,9 +362,9 @@ def run_pong(pongdata, opts, pong_filemap, labels, ind2pop):
 	
 	# write.write_json(pongdata)
 
-	print 'match time: %.2fs' % (t2-t1)
-	print 'align time: %.2fs' % (t4-t3)
-	print 'total time: %.2fs' % ((t2-t0)+(t4-t3))
+	print('match time: %.2fs' % (t2-t1))
+	print('align time: %.2fs' % (t4-t3))
+	print('total time: %.2fs' % ((t2-t0)+(t4-t3)))
 
 
 
@@ -357,9 +377,10 @@ class Application(tornado.web.Application):
 			(r"/", MainHandler),
 			(r"/pongsocket", WSHandler),
 		]
+		src = path.dirname(__file__) # if version == 'DEV' else pong.__path__[0]
 		settings = dict(
-			template_path=path.join(path.dirname(__file__), "templates"),
-			static_path=path.join(path.dirname(__file__), "static"),
+			template_path=path.join(src, "templates"),
+			static_path=path.join(src, "static"),
 		)
 		tornado.web.Application.__init__(self, handlers, **settings)
 
@@ -381,7 +402,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 			# global run_pong_args
 			# run_pong(*run_pong_args)
 		
-		print 'New browser connection; generating visualization'
+		print('New browser connection; generating visualization')
 		pong_json_data = write.write_json(pongdata) # add 'True' when debugging to get json
 
 		self.write_message(json.dumps({'type': 'pong-data',
@@ -391,7 +412,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
 	def on_close(self):
 		WSHandler.clients.remove(self)
-		print 'Browser disconnected'
+		print('Browser disconnected')
 
 	# @classmethod
 	# def update(cls, data):
@@ -404,13 +425,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 		data = json.loads(message)
 		data = tornado.escape.json_decode(message)
 
-		if data['type'] == 'button-clicked':
-			# the tornado chat example has a diff way of doing this
-			print 'received button click %s from client' % data['info']
-			self.write_message(json.dumps({'type': 'button-response',
-				'response':'nm u?'}))
-
-		elif data['type'] == 'get-qmatrix': #received call from client on_message getQmatrix function call
+		#received call from client on_message getQmatrix function call
+		if data['type'] == 'get-qmatrix':
 			name = data['name']
 			run = pongdata.runs[pongdata.name2id[name]] #returns run instance
 			minor = data['minor']

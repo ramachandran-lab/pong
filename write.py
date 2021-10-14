@@ -31,7 +31,7 @@ def output_cluster_match_details(pong):
 
 				data = (r1.name, r2.name)
 				fname = 'result_%s_%s.txt' % data
-				f = open(path.join(result_fp,fname),'w')
+				f = open(path.join(result_fp, fname), 'w')
 
 				header = 'Comparing %s with %s.\n' % data
 				header += 'Avg. similarity = %f\n' % (match.sim)
@@ -42,14 +42,14 @@ def output_cluster_match_details(pong):
 					f.write('\ncluster %d:\n' % (i))
 
 					# User could be able to choose the number of best matches to output, otherwise print all
-					for e in (match.print_best_cluster_matches(i) if pong.print_all else match.print_best_cluster_matches(i,5)):
+					for e in (match.print_best_cluster_matches(i) if pong.print_all else match.print_best_cluster_matches(i, 5)):
 						f.write('\t%s: %f\n' % (str(e[1]), e[0]))
 
 				f.close()
 
 
 	# OUTPUT SUMMARY FILE
-	f = open(path.join(output_dir,'result_summary.txt'),'w')
+	f = open(path.join(output_dir, 'result_summary.txt'), 'w')
 	
 	header = pong.intro+'\n\n'
 	header += 'Results summary\n'
@@ -139,13 +139,13 @@ def output_alignments(pong):
 			# TODO: would it be better to call this a mode rather than rep run?
 			rep = '_reprun' if run in kgroup.rep_runs else ''
 			fname = '%s%s.Q' % (runs[run].name, rep)
-			shutil.copy(runs[run].path, path.join(run_fp,fname))
+			shutil.copy(runs[run].path, path.join(run_fp, fname))
 
 
 	
 	# OUTPUT BEST ALIGNMENT ACROSS K
 	if len(all_kgroups)>1:
-		f = open(path.join(output_dir,'best_alignment_across_K.txt'), 'w')
+		f = open(path.join(output_dir, 'best_alignment_across_K.txt'), 'w')
 
 		header = pong.intro+'\n\n'
 		header += 'Alignment of best permutation of all runs across K\n'
@@ -160,7 +160,7 @@ def output_alignments(pong):
 
 
 	# OUTPUT CLUMPP-LIKE RESULT, BEST ALIGNMENT WITHIN EACH K
-	f = open(path.join(output_dir,'best_alignment_per_K.txt'), 'w')
+	f = open(path.join(output_dir, 'best_alignment_per_K.txt'), 'w')
 
 	header = pong.intro+'\n\n'
 	header += 'Alignment of best permutation of all runs for each (fixed) K\n'
@@ -173,7 +173,7 @@ def output_alignments(pong):
 
 		#TODO: if you want abs alignment too/instead, just switch
 		# rel_alignment to alignment. 
-		for i,perm in enumerate(kgroup.rel_alignment):
+		for i, perm in enumerate(kgroup.rel_alignment):
 			s = runs[kgroup.all_runs[i]].name
 			f.write('\n' + s + '\t' +'\t'.join([str(x) for x in perm]) ) 
 			if kgroup.all_runs[i] in kgroup.rep_runs: f.write('\t*')
@@ -207,19 +207,19 @@ def write_json(pong, as_file=False):
 		data["popNames"] = pong.popindex2popname
 		data["popSizes"] = pong.pop_sizes
 
-	data["K_min"] = pong.K_min
-	data["K_max"] = pong.K_max
+	data["K_min"] = int(pong.K_min)
+	data["K_max"] = int(pong.K_max)
 	data["colors"] = pong.colors
 	data["sim_threshold"] = pong.sim_threshold
 
 	data["qmatrices"] = []
 	for kgroup in all_kgroups:
 		info = {}
-		info["K"] = kgroup.K
+		info["K"] = int(kgroup.K)
 		info["total_runs"] = len(kgroup.all_runs)
 
 		info["major_mode_runid"] = runs[kgroup.primary_run].name
-		info["color_perm"] = kgroup.color_perm
+		info["color_perm"] = [int(x) for x in kgroup.color_perm]
 		# rep_runs = [runs[x].name for x in kgroup.rep_runs]
 		# info += 'Representative runs: '+', '.join(rep_runs)
 
@@ -262,7 +262,7 @@ def write_json(pong, as_file=False):
 		return data
 
 	else:
-		with open(path.join(output_dir,'data.json'),'w') as f:
+		with open(path.join(output_dir, 'data.json'), 'w') as f:
 			f.write(json.dumps(data))
 		return data #add 'return data' here if json should be written out; see also ../run_pong.py
 

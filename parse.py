@@ -18,8 +18,8 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 
 	# List of characters that have special meaning in CSS syntax (and thus cannot be used in runIDs
 	# unless we decide to escape them before passing them to the front end), plus whitespace.
-	css_special_chars = ["!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", 
-			":", ";", "<", "=", ">", "?", "@", "[", "\\", "]", "^", "`", "{", "|", "}", "~", " ", "\t"]
+	# css_special_chars = ["!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", 
+	# 		":", ";", "<", "=", ">", "?", "@", "[", "\\", "]", "^", "`", "{", "|", "}", "~", " ", "\t"]
 
 
 	# filemap is in the format: run_id\tK_value\trel/path/to/qmatrix
@@ -28,7 +28,8 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 			warnings.simplefilter("ignore")
 			# note that np.genfromtxt has a default value of comments='#'
 			qfiles_info = np.genfromtxt(filemap, delimiter='\t', 
-				dtype=[('f0',object), ('f1',int), ('f2',object)],
+				dtype=[('f0', object), ('f1', int), ('f2', object)],
+				converters={0: lambda s: s.decode(), 2: lambda s: s.decode()},
 				loose=False, autostrip=True)
 	except ValueError:
 		sys.exit('Error parsing filemap: check that the file is tab-'
@@ -41,11 +42,11 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 		sys.exit('Error: filemap is empty.')
 
 	if (qfiles_info.size == 1):
-		qfiles_info = [(str(qfiles_info['f0']),int(qfiles_info['f1']),str(qfiles_info['f2']))]
+		qfiles_info = [(str(qfiles_info['f0']), int(qfiles_info['f1']), str(qfiles_info['f2']))]
 		
 	krange = sorted({q[1] for q in qfiles_info})
 
-	if krange != range(krange[0], krange[-1]+1):
+	if krange != list(range(krange[0], krange[-1]+1)):
 		sys.exit('Error parsing input files: there must be at least one '
 			'Q matrix for every K in [min_K, max_K]')
 
@@ -66,11 +67,11 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 		sys.stdout.write('\nWarning: The custom color file provided does not contain enough colors '
 			'for visualization. ')
 		if pong.K_max < 27:
-			r = raw_input('Continue using default colors? (y/n): ')
-			while r not in ('y','Y','n','N'):
-				r = raw_input('Please enter "y" to overwrite or '
+			r = input('Continue using default colors? (y/n): ')
+			while r not in ('y', 'Y', 'n', 'N'):
+				r = input('Please enter "y" to overwrite or '
 						'"n" to exit: ')
-			if r in ('n','N'): sys.exit('Make sure there are as many colors in the color file as the largest '
+			if r in ('n', 'N'): sys.exit('Make sure there are as many colors in the color file as the largest '
 				'value of K from the Q matrices.')
 			pong.colors = []
 		
@@ -88,8 +89,8 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 
 		#read Q matrix information into array
 		try:
-			data = np.genfromtxt(p,loose=False, unpack=True,delimiter=col_delim,
-				autostrip=True,usecols=range(ignore_cols,ignore_cols+q[1]))
+			data = np.genfromtxt(p, loose=False, unpack=True, delimiter=col_delim,
+				autostrip=True, usecols=list(range(ignore_cols, ignore_cols+q[1])))
 			if (q[1] == 1):
 				data = [data]
 		except ValueError:
@@ -149,7 +150,7 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 
 	# if ind2pop data is contained within the Q matrices, parse it here. just
 	# use the last Q matrix that was parsed, it doesn't really matter which
-	if type(ind2pop) == int:
+	if isinstance(ind2pop, int):
 		pong.ind2pop = np.genfromtxt(p, unpack=True, delimiter=col_delim,
 			autostrip=True, usecols=(ind2pop-1,), dtype=str)
 	else:
@@ -185,7 +186,7 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 				sys.exit('invalid labels - make sure pop code and pop name are '
 					' tab-delimited and pop code does not contain spaces.')
 			pong.pop_order = labels.tolist()
-			pong.popcode2popname = dict(zip(labels,labels)) # just map each pop to itself
+			pong.popcode2popname = dict(list(zip(labels, labels))) # just map each pop to itself
 
 
 		if len(set(pong.pop_order)) != len(pong.pop_order):
@@ -206,14 +207,14 @@ def parse_multicluster_input(pong, filemap, ignore_cols, col_delim, labels_file,
 			sys.exit(s)
 
 	
-	pong.popindex2popname = {i:pong.popcode2popname[x] for i,x in enumerate(pong.pop_order)}
+	pong.popindex2popname = {i:pong.popcode2popname[x] for i, x in enumerate(pong.pop_order)}
 
 	# generate list of pop sizes
 	pop_sizes_dict = defaultdict(int)
 	for x in pong.ind2pop: pop_sizes_dict[x] += 1
 	
 	pong.pop_sizes = [0]*len(pong.pop_order)
-	for pop_code,num_ind in pop_sizes_dict.items():
+	for pop_code, num_ind in list(pop_sizes_dict.items()):
 		pong.pop_sizes[pong.pop_order.index(pop_code)] = num_ind
 
 
@@ -227,12 +228,12 @@ def convert_data(pong):
 	'''
 	
 	if pong.ind2pop is not None:
-		order = [[] for i in xrange(len(pong.pop_order))]
-		for i,p in enumerate(pong.ind2pop):
+		order = [[] for i in range(len(pong.pop_order))]
+		for i, p in enumerate(pong.ind2pop):
 			order[pong.pop_order.index(p)].append(i)
 	# else:
 	# 	order = [[x for x in range(pong.num_indiv)]]
-		for i,pop in enumerate(order):
+		for i, pop in enumerate(order):
 			order[i] = sort_indiv(pong, pop)
 
 
@@ -242,7 +243,7 @@ def convert_data(pong):
 		# order.sort(key = lambda x: sort_run.data[maj_clust][x])
 
 	clus_membership = {}
-	for run in pong.runs.values():
+	for run in list(pong.runs.values()):
 		data = np.array([run.data[i] for i in run.alignment-1]).transpose()
 		# print(run.alignment, run.rel_alignment)
 		
@@ -255,7 +256,7 @@ def convert_data(pong):
 			run.population_object_data = []
 
 			count = 0
-			for popNumber,p in enumerate(order):
+			for popNumber, p in enumerate(order):
 				x = [data[i].tolist() for i in p]
 				clus_membership[run.name].append([np.average([pop[r] for pop in x]) for r in range(run.K)])
 
@@ -264,7 +265,7 @@ def convert_data(pong):
 				new_population['members'] = []
 				for i in p:
 					membership = {"cluster"+str(c+1): data[i][c] for c in range(run.K)}
-					membership['index'] = count;
+					membership['index'] = count
 					new_population["members"].append(membership)
 					count += 1
 				run.population_object_data.append(new_population)
@@ -280,7 +281,7 @@ def convert_data(pong):
 			count = 0
 			for d in data:
 				membership = {"cluster"+str(c+1): d[c] for c in range(run.K)}
-				membership['index'] = count;
+				membership['index'] = count
 				new_population["members"].append(membership)
 				count += 1
 			run.population_object_data = []
@@ -296,7 +297,7 @@ def convert_data(pong):
 def sort_indiv(pong, pop):
 	sort_run = pong.runs[pong.sort_by]
 
-	maj_clust = max(range(sort_run.K), key=lambda k: np.mean([sort_run.data[k][p] for p in pop]))
+	maj_clust = max(list(range(sort_run.K)), key=lambda k: np.mean([sort_run.data[k][p] for p in pop]))
 	pop.sort(key = lambda x: sort_run.data[maj_clust][x])
 	return pop
 

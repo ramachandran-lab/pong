@@ -12,14 +12,13 @@ class Run:
 		self.name = rep_name
 		self.data = data
 
-		# both of these are transposed, colum-permuted versions of data.
+		# population_object_data is a list of dictionaries, each of which
+		# include a population number and a list of member coefficients for each
+		# individual in the data.
 		# if ind2pop exists, then they are also indivpop-sorted. 
-		# however, if ind2pop does not, then they're not, and also 
-		# data_transpose_3d is None.
-		self.data_transpose_2d = None
+		# however, if ind2pop does not, then they're not.
 		self.rel_gray = None
 		self.population_object_data = None
-		#self.data_transpose_3d = None
 
 		self.path = path
 		self.id = str(id(self)) # convert to str so can hash
@@ -96,7 +95,7 @@ class Match:
 
 
 	def print_best_cluster_matches(self, from_cluster, num=None):
-		l = [(self.edges[e], e[1]) for e in (x for x in self.edges.keys() if x[0]==from_cluster)]
+		l = [(self.edges[e], e[1]) for e in (x for x in list(self.edges.keys()) if x[0]==from_cluster)]
 		l.sort(reverse=True)
 		if num is not None:
 			return l[:num]

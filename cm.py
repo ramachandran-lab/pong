@@ -10,8 +10,6 @@ m = Munkres()
 
 
 def clump(pong, dist_metric, sim_threshold, greedy):
-	all_kgroups = pong.all_kgroups
-	cluster_matches = pong.cluster_matches
 	'''
 	Here, the boolean passed into match_clusters represents fixed_K, 
 		meaning we're comparing runs with the same number of clusters.
@@ -24,7 +22,6 @@ def clump(pong, dist_metric, sim_threshold, greedy):
 		likewise need to add the one entry of unique_runs to rep_runs.
 	'''
 	for kgroup in pong.all_kgroups:
-		K = kgroup.K
 		kgroup.all_runs = sorted(kgroup.all_runs)
 		all_runs = kgroup.all_runs
 		e = []
@@ -40,11 +37,11 @@ def clump(pong, dist_metric, sim_threshold, greedy):
 
 
 					labels = sorted(match.to_nodes)
-					mat = [[1-match.edges[(x+1,y)] for y in labels] for x in range(len(labels))]
+					mat = [[1-match.edges[(x+1, y)] for y in labels] for x in range(len(labels))]
 
 					indexes = m.compute(mat)
 					total = 0.0
-					for row,column in indexes:
+					for row, column in indexes:
 						value = 1-mat[row][column]
 						total += value
 					average = total/len(indexes)
@@ -65,15 +62,15 @@ def clump(pong, dist_metric, sim_threshold, greedy):
 		if not is_disjoint(cliques, len(kgroup.all_runs)):
 			sys.stdout.write('\nWarning: pong could not find disjoint modes given similarity threshold.\n')
 			if not greedy:
-				r = raw_input('Continue matching using greedy algorithm (y/n): ')
-				while r not in ('y','Y','n','N'):
-					r = raw_input('Please enter "y" to use greedy algorithm or '
+				r = input('Continue matching using greedy algorithm (y/n): ')
+				while r not in ('y', 'Y', 'n', 'N'):
+					r = input('Please enter "y" to use greedy algorithm or '
 							'"n" to exit: ')
-				if r in ('n','N'): sys.exit('Could not find disjoint modes. Consider increasing the similarity threshold.\n')
+				if r in ('n', 'N'): sys.exit('Could not find disjoint modes. Consider increasing the similarity threshold.\n')
 			
 			greedy_cliques = []
 			num_cliques_in_graph = len(kgroup.all_runs)
-			while (not is_disjoint(cliques,num_cliques_in_graph)):
+			while (not is_disjoint(cliques, num_cliques_in_graph)):
 				
 				greedy_cliques.append(cliques[0])
 				num_cliques_in_graph -= len(cliques[0])
@@ -93,13 +90,13 @@ def clump(pong, dist_metric, sim_threshold, greedy):
 				opp_match.to_nodes = match.to_nodes
 				opp_match.from_nodes = match.from_nodes
 
-				opp_match.edges = {(x[1][0],(x[0],)):match.edges[x] for x in match.edges}
+				opp_match.edges = {(x[1][0], (x[0],)):match.edges[x] for x in match.edges}
 				# opp_match.perm = [match.perm.index(x+1)+1 for x in range(len(match.perm))]
 
 				add_cluster_match(pong, kgroup.primary_run, run, opp_match )
 
 			kgroup.all_runs.remove(cliques[0][0])
-			kgroup.all_runs.insert(0,cliques[0][0])
+			kgroup.all_runs.insert(0, cliques[0][0])
 
 		for mode in cliques:
 			kgroup.rep_runs.append(mode[0])
@@ -113,10 +110,10 @@ def clump(pong, dist_metric, sim_threshold, greedy):
 			
 		# print number of unique clustering solutions
 		if len(kgroup.rep_runs) == 1:
-			print 'For K=%d, there is 1 mode across %d run%s.' % (kgroup.K, len(kgroup.all_runs),pl)
+			print('For K=%d, there is 1 mode across %d run%s.' % (kgroup.K, len(kgroup.all_runs), pl))
 		else:
-			data = (kgroup.K, len(kgroup.rep_runs), len(kgroup.all_runs),pl)
-			print 'For K=%d, there are %d modes across %d run%s.' % data
+			data = (kgroup.K, len(kgroup.rep_runs), len(kgroup.all_runs), pl)
+			print('For K=%d, there are %d modes across %d run%s.' % data)
 
 	pong.sort_by = cliques[0][0]
 
@@ -170,10 +167,10 @@ def match_clusters(pong, run1, run2, K, dist_metric, fixed_K):
 	cluster_num = 1
 	for n1 in run1:
 
-		for i,n2 in enumerate(run2):
+		for i, n2 in enumerate(run2):
 			weight = cluster_dist(pong, n1, n2, K, dist_metric)
 			cluster_id = (i+1,) # must include comma so we know it's a tuple
-			match.edges[(cluster_num,cluster_id)] = weight
+			match.edges[(cluster_num, cluster_id)] = weight
 			match.to_nodes.add(cluster_id)
 
 
@@ -184,11 +181,11 @@ def match_clusters(pong, run1, run2, K, dist_metric, fixed_K):
 			# 	combs += [x for x in combinations(range(len(run2)),i)]
 			# combs = [x for x in combinations(range(len(run2)), 2)]
 
-			for c1,c2 in combinations(range(len(run2)), 2):
+			for c1, c2 in combinations(list(range(len(run2))), 2):
 				n2 = run2[c1]+run2[c2]
 				weight = cluster_dist(pong, n1, n2, K, dist_metric)
 				cluster_id = (c1+1, c2+1)
-				match.edges[(cluster_num,cluster_id)] = weight
+				match.edges[(cluster_num, cluster_id)] = weight
 				match.to_nodes.add(cluster_id)
 
 		match.from_nodes.add(cluster_num)
