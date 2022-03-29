@@ -1,2 +1,9 @@
-example_data_1kG-p3/data/** -linguist-detectable
-license/*.txt
+example_data_1kG-p3/data/run1/*.Q -linguist-detectable
+example_data_1kG-p3/data/run2/*.Q -linguist-detectable
+example_data_1kG-p3/data/run3/*.Q -linguist-detectable
+example_data_1kG-p3/data/run4/*.Q -linguist-detectable
+example_data_1kG-p3/data/run5/*.Q -linguist-detectable
+example_data_1kG-p3/data/run6/*.Q -linguist-detectable
+example_data_1kG-p3/data/run7/*.Q -linguist-detectable
+example_data_1kG-p3/data/run8/*.Q -linguist-detectable
+license/*.txt -linguist-detectable
