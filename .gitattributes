@@ -6,5 +6,6 @@ example_data_1kG-p3/data/run5/*.Q -linguist-detectable
 example_data_1kG-p3/data/run6/*.Q -linguist-detectable
 example_data_1kG-p3/data/run7/*.Q -linguist-detectable
 example_data_1kG-p3/data/run8/*.Q -linguist-detectable
-static/dependencies/* -linguist-detectable
+static/dependencies/*.js -linguist-detectable
+static/dependencies/*.css -linguist-detectable
 license/*.txt -linguist-detectable
